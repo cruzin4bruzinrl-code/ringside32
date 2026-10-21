@@ -126,7 +126,7 @@ button{font-family:inherit;cursor:pointer}
   <div class="card" id="mainCard">
     <div>
       <h1>RINGSIDE<span>32</span></h1>
-      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V22</span></p>
+      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V23</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
       <button id="go" class="big">SNABB MATCH</button>
@@ -463,7 +463,7 @@ class Fighter{
     const bounce=Math.sin(t*4.4+this.seed),bob=bounce*(this.stun>.5?.6:1.2)+Math.abs(Math.sin(this.walkPh))*1.2*Math.max(mv,mvW);
     const sl=this.slipA;
     const dd=Math.min(d,1.05),ss=Math.min(s,1.05);
-    let spA=.12+.46*dd-.36*ss+.1*Math.abs(sl),upA=.2+.5*dd-.42*ss,nkA=.3+.18*dd-.25*ss,px=-7*dd-6*ss+1.5*Math.abs(sl)+Math.sin(t*2.2+this.seed)*1.1,py=54-13*dd+bob-4*Math.abs(sl),tw=0;
+    let spA=.12+.46*dd-.36*ss+.1*Math.abs(sl),upA=.2+.5*dd-.42*ss,nkA=.3+.18*dd-.25*ss,px=-7*dd-6*ss+1.5*Math.abs(sl)+Math.sin(t*2.2+this.seed)*1.1,py=57-13*dd+bob-4*Math.abs(sl),tw=0;
     if(cl){spA+=.28;upA+=.2}
     // koreografi: varje led når sitt läge i tur och ordning (ben/höft först, sedan bål och sist armen)
     let rot=ROT0+.06*Math.sin(t*1.7+this.seed),hipR=ROT0*.7,heel=0,knee=0;
@@ -1871,18 +1871,29 @@ function ragDrive(R,h,TQ,TP,tone,root,dt,toneOf){
 // väggar vid repen så att en utslagen kropp stannar i ringen
 function ragWalls(w){const C=CANNON;for(const[nx,nz]of[[1,0],[-1,0],[0,1],[0,-1]]){const b=new C.Body({mass:0,shape:new C.Plane()});b.quaternion.setFromVectors(new C.Vec3(0,0,1),new C.Vec3(-nx,0,-nz));b.position.set(nx*(RB+4),0,nz*(RB+4));b.collisionFilterGroup=1;w.addBody(b)}}
 const RMAP={hips:'pelvis',spine:'abdomen',chest:'chest',head:'head','uarm.L':'uarmL','farm.L':'farmL','uarm.R':'uarmR','farm.R':'farmR','thigh.L':'thighL','shin.L':'shinL','foot.L':'footL','thigh.R':'thighR','shin.R':'shinR','foot.R':'footR'};
-function ragStep(R,tr){const now=game.t;let dt=R.pt==null?0:now-R.pt;R.pt=now;if(dt<0||dt>.2)dt=0;
-  for(const o of R.fighters){const rg=o.rag;if(!rg)continue;const f=o.f,h=o.hum,act=!(tr&&f.idx===1);rg.act=act;
-    if(!act){ragSnap(rg,h,h.TQ,h.TP,1);continue}
-    const pv=rg.bodies.pelvis.position,tp=h.TP[h.BI.hips];
-    if(!rg.init||(!f.down&&f.rising<=0&&Math.hypot(pv.x-tp[0],pv.y-tp[1],pv.z-tp[2])>48)){ragSnap(rg,h,h.TQ,h.TP,1);rg.init=true}
-    else if(f.rising>0)ragSnap(rg,h,h.TQ,h.TP,Math.min(1,.04+f.rising*.22));
-    if(f.rimp&&f.rimp.length){for(const r of f.rimp){const b=rg.bodies[r.part];if(b)b.applyImpulse(new CANNON.Vec3(r.d[0]*r.m,r.d[1]*r.m,r.d[2]*r.m))}f.rimp.length=0}}
-  if(dt<=0)return;const n=Math.min(8,Math.ceil(dt*120-1e-6)),sd=dt/n;
-  for(let k=0;k<n;k++){for(const o of R.fighters){const rg=o.rag;if(!rg||!rg.act)continue;const f=o.f;
-      const tone=f.down?.012:f.rising>0?.2+.8*f.rising:clamp(1-.45*Math.min(1,f.stun),.35,1),root=f.down?0:f.rising>0?f.rising:clamp(1-.3*Math.min(1,f.stun),.5,1);
-      ragDrive(rg,o.hum,o.hum.TQ,o.hum.TP,tone,root,sd,(nm,t)=>nm==='head'?t*(1-.6*f.headDip):nm==='abdomen'||nm==='chest'?t*(1-.35*Math.min(1,f.toneDip)):t)}
-    R.world.step(sd)}}
+// stående: kroppen följer animationen exakt (stabilt, inga glitchar) men delarnas fart sparas,
+// så att en knockout tar med sig rörelsen in i fysiken. Nere: fri ragdoll. Uppresning: mjuk övergång tillbaka.
+function ragFollow(R,h,TQ,TP,dt){const q0=new T3.Quaternion(),q1=new T3.Quaternion();
+  for(const n of R.list){const m=R.M[n],b=R.bodies[n],q=TQ[m.bone],p=vadd(TP[m.bone],qrot(q,vsub(m.M,h.bh[m.bone])));
+    if(dt>0){let vx=(p[0]-b.position.x)/dt,vy=(p[1]-b.position.y)/dt,vz=(p[2]-b.position.z)/dt;const vl=Math.hypot(vx,vy,vz);if(vl>700){vx*=700/vl;vy*=700/vl;vz*=700/vl}b.velocity.set(vx,vy,vz);
+      q0.set(b.quaternion.x,b.quaternion.y,b.quaternion.z,b.quaternion.w);q1.copy(q).multiply(q0.invert());if(q1.w<0){q1.x=-q1.x;q1.y=-q1.y;q1.z=-q1.z;q1.w=-q1.w}
+      const sn=Math.hypot(q1.x,q1.y,q1.z),ang=2*Math.atan2(sn,q1.w),w=sn>1e-6?Math.min(ang/dt,25)/sn:0;b.angularVelocity.set(q1.x*w,q1.y*w,q1.z*w)}
+    else{b.velocity.setZero();b.angularVelocity.setZero()}
+    b.position.set(p[0],p[1],p[2]);b.quaternion.set(q.x,q.y,q.z,q.w)}}
+function ragStep(R,tr){const now=game.t;let dt=R.pt==null?0:now-R.pt;R.pt=now;if(dt<0||dt>.2)dt=0;let sim=false;
+  for(const o of R.fighters){const rg=o.rag;if(!rg)continue;const f=o.f,h=o.hum,act=!(tr&&f.idx===1);
+    if(!act||!rg.init){ragFollow(rg,h,h.TQ,h.TP,0);rg.init=true;rg.mode='kin';continue}
+    if(f.down){if(rg.mode!=='rag'){rg.mode='rag'}
+      if(f.rimp&&f.rimp.length){for(const r of f.rimp){const b=rg.bodies[r.part];if(b)b.applyImpulse(new CANNON.Vec3(r.d[0]*r.m*1.6,r.d[1]*r.m*1.6,r.d[2]*r.m*1.6))}f.rimp.length=0}
+      sim=true}
+    else if(f.rising>0){ragSnap(rg,h,h.TQ,h.TP,Math.min(1,.05+f.rising*.3));rg.mode='rise'}
+    else{if(f.rimp)f.rimp.length=0;ragFollow(rg,h,h.TQ,h.TP,rg.mode==='kin'?dt:0);rg.mode='kin'}}
+  if(!sim||dt<=0)return;const n=Math.min(8,Math.ceil(dt*120-1e-6)),sd=dt/n;
+  for(let k=0;k<n;k++){for(const o of R.fighters){const rg=o.rag;if(!rg||rg.mode!=='rag')continue;ragDrive(rg,o.hum,o.hum.TQ,o.hum.TP,.012,0,sd)}
+    // kroppar som inte simuleras just nu hålls stilla (de skrivs över av animationen ändå)
+    for(const o of R.fighters){const rg=o.rag;if(rg&&rg.mode!=='rag')for(const nm of rg.list){const b=rg.bodies[nm];b.velocity.setZero();b.angularVelocity.setZero()}}
+    R.world.step(sd)}
+  for(const o of R.fighters){const rg=o.rag;if(rg&&rg.mode!=='rag')ragFollow(rg,o.hum,o.hum.TQ,o.hum.TP,0)}}
 function humanFromRag(o){const h=o.hum,R=o.rag,{BI,bh,bt,Q,par}=h,Pw=h.P,H=hq(),WQ=h.WQ||(h.WQ=h.bones.map(()=>new T3.Quaternion()));
   h.bones.forEach((b,i)=>{const n=RMAP[b.name];if(n){const q=R.bodies[n].quaternion;WQ[i].set(q.x,q.y,q.z,q.w)}});
   WQ[BI.neck].copy(WQ[BI.chest]).slerp(WQ[BI.head],.5);for(const s of'LR'){WQ[BI['clav.'+s]].copy(WQ[BI.chest]);WQ[BI['hand.'+s]].copy(WQ[BI['farm.'+s]])}
@@ -2093,7 +2104,7 @@ function draw3(){
   R.fighters[1].grp.visible=!tr;R.bagG.mesh.visible=R.chain.visible=tr;
   const fb=o=>o.hum?human3(o):fighter3(o);fb(R.fighters[0]);if(!tr)fb(R.fighters[1]);else bag3();
   if(R.world)ragStep(R,tr);
-  for(const o of R.fighters)if(o.hum&&(o===R.fighters[0]||!tr)){if(o.rag&&R.world)humanFromRag(o);humanDress(o)}
+  for(const o of R.fighters)if(o.hum&&(o===R.fighters[0]||!tr)){if(o.rag&&R.world&&o.rag.mode!=='kin')humanFromRag(o);humanDress(o)}
   // svett: huden blir blankare ju tröttare och mer slagen boxaren är
   for(const o of R.fighters){const f=o.f,sw=clamp((1-f.stam/100)*.6+(game.round-1)*.15+(100-f.hp)/250,0,1);for(const m of[o.skin,o.torsoM]){m.clearcoat=.12+.85*sw;m.clearcoatRoughness=.42-.3*sw;m.roughness=.52-.18*sw}}
   let xa=0;for(const o of R.fighters)xa=Math.max(xa,xray3(o));R.post.uniforms.xr.value=xa;
@@ -2127,7 +2138,7 @@ function render3(rdt){
 }
 
 // ---------- loop ----------
-const STEP=1/120;let last=performance.now(),acc=0;if(window.__noperf)window.__G={step:n=>{for(let i=0;i<n;i++)step(STEP)},F,game,draw:()=>{if(R3)render3(0)}};
+const STEP=1/120;let last=performance.now(),acc=0;if(window.__noperf)window.__G={step:n=>{for(let i=0;i<n;i++)step(STEP)},F,game,draw:()=>{if(R3)render3(0)},R:()=>R3};
 function frame(now){
   requestAnimationFrame(frame);
   const rdt=Math.min(.05,(now-last)/1000);last=now;
