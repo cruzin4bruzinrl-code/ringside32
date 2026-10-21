@@ -126,7 +126,7 @@ button{font-family:inherit;cursor:pointer}
   <div class="card" id="mainCard">
     <div>
       <h1>RINGSIDE<span>32</span></h1>
-      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V23</span></p>
+      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V24</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
       <button id="go" class="big">SNABB MATCH</button>
@@ -1745,7 +1745,7 @@ function buildXray(T,o){
   const crackM=new T.LineBasicMaterial({color:0xff2a2a,depthTest:false,transparent:true}),crackG=new T.BufferGeometry();crackG.setAttribute('position',new T.BufferAttribute(new Float32Array(3*120),3));
   const crack=new T.LineSegments(crackG,crackM);crack.visible=false;crack.renderOrder=5;crack.frustumCulled=false;bones[BI.head].add(crack);
   const shock=new T.Mesh(sph,new T.MeshBasicMaterial({color:0x9fe0ff,transparent:true,opacity:.5,depthWrite:false,blending:T.AdditiveBlending}));shock.visible=false;shock.renderOrder=6;o.grp.add(shock);
-  const skin=new T.MeshStandardMaterial({color:0x7fd0ff,emissive:0x0e3a66,roughness:.4,transparent:true,opacity:.2,depthWrite:false});
+  const skin=new T.MeshStandardMaterial({color:0x7fd0ff,emissive:0x0e3a66,roughness:.4,transparent:true,opacity:.2,depthWrite:false,flatShading:true});
   return{list,skull,jaw,brain,ribs,lungs,heart,liver,stomach,crack,shock,skin,on:false,hh,C0,sw,yB};
 }
 // röntgensekvens: hud tonas till glas, chockvåg, hjärnan slungas (contrecoup), sprickor växer, organ kläms
@@ -1955,7 +1955,7 @@ function init3D(THREE){
   const fighters=F.map(f=>{
     const skin=mk({roughness:.5,clearcoat:.15,clearcoatRoughness:.4,sheen:.4,sheenColor:new T.Color(0xff9070),sheenRoughness:.6,normalMap:skinN,normalScale:new T.Vector2(.25,.25)});
     const torsoM=mk({roughness:.5,clearcoat:.15,clearcoatRoughness:.4,sheen:.4,sheenColor:new T.Color(0xff9070),sheenRoughness:.6,normalMap:torsoN,normalScale:new T.Vector2(.9,.9)});
-    const leather=mk({roughness:.3,clearcoat:.9,clearcoatRoughness:.18}),satin=mk({roughness:.34,sheen:1,sheenRoughness:.3,sheenColor:new T.Color(0xffffff)}),boot=mk({roughness:.4,clearcoat:.5});
+    const leather=mk({roughness:.35,clearcoat:.6,clearcoatRoughness:.25,flatShading:true}),satin=mk({roughness:.34,sheen:1,sheenRoughness:.3,sheenColor:new T.Color(0xffffff)}),boot=mk({roughness:.5,flatShading:true});
     const grp=new T.Group();scene.add(grp);const G=(nR,nS,m,caps=true)=>{const g=new G3(nR,nS,m,caps,true);grp.add(g.mesh);return g};
     const o={f,grp,skin,torsoM,
       torso:G(17,24,torsoM),neck:G(6,14,skin),head:G(19,26,skin,false),nose:G(6,8,skin),ears:[G(6,8,skin,false),G(6,8,skin,false)],
@@ -1967,7 +1967,7 @@ function init3D(THREE){
     o.brows=[0,1].map(()=>{const b=new T.Mesh(new T.BoxGeometry(1,1,1),new T.MeshStandardMaterial({color:f.look.hair||'#241408',roughness:.9}));b.matrixAutoUpdate=false;grp.add(b);return b});
     o.mouth=new T.Mesh(new T.BoxGeometry(1,1,1),dark);o.mouth.matrixAutoUpdate=false;grp.add(o.mouth);
     if(HUM){try{
-      const hs=new T.MeshPhysicalMaterial({vertexColors:true,color:0xffffff,roughness:.55,clearcoat:.15,clearcoatRoughness:.4,sheen:.5,sheenColor:new T.Color(0xff8a6a),sheenRoughness:.55});
+      const hs=new T.MeshPhysicalMaterial({vertexColors:true,color:0xffffff,roughness:.6,clearcoat:.15,clearcoatRoughness:.4,flatShading:true});
       o.hum=humanMesh(T,f.idx?'b':'a',hs);grp.add(o.hum.mesh);o.skin=o.torsoM=hs;o.xr=buildXray(T,o);
       if(CANNON){if(!RW){RW=ragWorld();ragWalls(RW)}o.rag=ragBuild(RW,o.hum,f.idx?4:2)}
       for(const k of['torso','neck','head','nose'])o[k].mesh.visible=false;for(const k of['ears','delt','uarm','farm','shorts','thigh','shin'])o[k].forEach(g=>g.mesh.visible=false);
@@ -1978,7 +1978,7 @@ function init3D(THREE){
   const bagG=new G3(11,18,mk({roughness:.42,clearcoat:.6,clearcoatRoughness:.3}),false,true);scene.add(bagG.mesh);
   const chain=new T.Mesh(new T.CylinderGeometry(1,1,1,6),new T.MeshStandardMaterial({color:0x9aa0aa,metalness:.8,roughness:.3}));scene.add(chain);
   // retrofilter: låg upplösning, färgreducering, Bayer-dithering, konturer från djupbufferten
-  const rt=new T.WebGLRenderTarget(16,16,{depthTexture:new T.DepthTexture(16,16),depthBuffer:true});rt.texture.minFilter=rt.texture.magFilter=T.LinearFilter;
+  const rt=new T.WebGLRenderTarget(16,16,{depthTexture:new T.DepthTexture(16,16),depthBuffer:true});rt.texture.minFilter=rt.texture.magFilter=T.NearestFilter;
   const post=new T.ShaderMaterial({uniforms:{tC:{value:rt.texture},tD:{value:rt.depthTexture},res:{value:new T.Vector2(16,16)},cn:{value:4},cf:{value:3200},lv:{value:30},time:{value:0},xr:{value:0}},
     vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',
     fragmentShader:`uniform sampler2D tC,tD;uniform vec2 res;uniform float cn,cf,lv,time,xr;varying vec2 vUv;
@@ -1991,14 +1991,14 @@ function init3D(THREE){
         // CRT: bukt, färgfransar, glöd, scanlines, RGB-mask, vinjett, flimmer
         vec2 q=vUv*2.-1.;q+=q*(q.yx*q.yx)*vec2(.028,.04);vec2 uv=q*.5+.5;
         if(uv.x<0.||uv.x>1.||uv.y<0.||uv.y>1.){gl_FragColor=vec4(0.,0.,0.,1.);return;}
-        vec2 p=1./res,cell=uv;
+        vec2 p=1./res,cell=(floor(uv*res)+.5)/res;
         float ca=.0016*length(q);vec3 c=vec3(grade(cell+vec2(ca,0.)).r,grade(cell).g,grade(cell-vec2(ca,0.)).b);
         vec3 gl=(grade(cell+vec2(2.*p.x,0.))+grade(cell-vec2(2.*p.x,0.))+grade(cell+vec2(0.,2.*p.y))+grade(cell-vec2(0.,2.*p.y)))*.25;c+=max(gl-.55,0.)*.55;
         float d=ld(cell),e=0.;
         e=max(e,abs(ld(cell+vec2(p.x,0.))-d));e=max(e,abs(ld(cell-vec2(p.x,0.))-d));e=max(e,abs(ld(cell+vec2(0.,p.y))-d));e=max(e,abs(ld(cell-vec2(0.,p.y))-d));
         float edge=step(7.+d*.025,e)*step(d,700.);
-        c=mix(c,c*.55,edge*.25);c=mix(c,c*vec3(.55,.8,1.15)*.8+vec3(0.,.015,.04),xr);
-        float sl=fract(gl_FragCoord.y/3.);c*=mix(1.,.86,smoothstep(.3,.5,abs(sl-.5)));
+        c=floor(c*vec3(31.,63.,31.)+(b4(floor(uv*res))-.5)*.9+.5)/vec3(31.,63.,31.);c=mix(c,c*.25,edge*.75);c=mix(c,c*vec3(.55,.8,1.15)*.8+vec3(0.,.015,.04),xr);
+        float sl=fract(uv.y*res.y);c*=mix(1.,.84,smoothstep(.36,.5,abs(sl-.5)));
         float m=mod(gl_FragCoord.x,3.);vec3 mask=m<1.?vec3(1.,.72,.72):m<2.?vec3(.72,1.,.72):vec3(.72,.72,1.);c*=mix(vec3(1.),mask,.2)*1.1;
         float v=16.*uv.x*uv.y*(1.-uv.x)*(1.-uv.y);c*=pow(v,.22);c*=.985+.015*sin(time*62.);
         gl_FragColor=vec4(c,1.);}`});
@@ -2006,13 +2006,13 @@ function init3D(THREE){
   // spelets koordinater är vänsterhänta: spegla hela världen (och kameran) så att bilden matchar 2D-lagret
   const root=new T.Group();root.scale.x=-1;while(scene.children.length)root.add(scene.children[0]);scene.add(root);
   scene.traverse(o=>{o.frustumCulled=false});
-  R3={T,renderer,scene,cam,gl,fighters,bagG,chain,rt,post,pScene,pCam,w:0,h:0,key,scale:2,q:0,world:RW,pt:null};
+  R3={T,renderer,scene,cam,gl,fighters,bagG,chain,rt,post,pScene,pCam,w:0,h:0,key,scale:.8,q:0,world:RW,pt:null};
   XSRC=gl;fit();
   // förkompilera röntgenmaterialen så att första dödliga slaget inte hackar
   try{for(const o of fighters)if(o.xr){o.xr.list.forEach(m=>m.visible=true);o.hum.mesh.material=o.xr.skin;o.xr.shock.visible=true}
     renderer.compile(scene,cam);for(const o of fighters)if(o.xr){o.xr.list.forEach(m=>m.visible=false);o.hum.mesh.material=o.skin;o.xr.shock.visible=false}}catch(e){console.warn(e)}
 }
-function resize3(){if(!R3)return;const sc=R3.scale||1.5,rw=Math.round(W*sc),rh=Math.round(H*sc);if(rw===R3.w&&rh===R3.h)return;R3.w=rw;R3.h=rh;R3.renderer.setSize(rw*2,rh*2,false);R3.rt.setSize(rw,rh);R3.post.uniforms.res.value.set(rw,rh);
+function resize3(){if(!R3)return;const sc=R3.scale||.8,rw=Math.round(W*sc),rh=Math.round(H*sc);if(rw===R3.w&&rh===R3.h)return;R3.w=rw;R3.h=rh;R3.renderer.setSize(rw*2,rh*2,false);R3.rt.setSize(rw,rh);R3.post.uniforms.res.value.set(rw,rh);
   const d=H/2-HC,fullH=H+2*d;R3.cam.fov=2*Math.atan(fullH/2/FOC)*180/Math.PI;R3.cam.aspect=W/fullH;R3.cam.updateProjectionMatrix();R3.fullH=fullH;R3.d=d}
 function fighter3(o){
   const f=o.f,P=f.p,z=f.zs,lk=f.look,sF=f.face*f.stance,tr=f.tr,up=[tr.ux,tr.uy],fw=[tr.fx,tr.fy],pu=f.punch;
@@ -2115,8 +2115,8 @@ function draw3(){
 function drop3(){if(!R3)return;R3.gl.style.display='none';try{R3.renderer.dispose()}catch(e){}R3=null;XSRC=null}
 function perf3(rdt){const R=R3;if(window.__noperf||!R||game.state==='menu')return;const now=performance.now();if(!R.t0){R.t0=now;R.fc=0}R.fc++;if(now-R.t0<2500)return;const fps=R.fc*1000/(now-R.t0);R.t0=now;R.fc=0;
   if(fps>=28)return;R.q++;
-  if(R.q===1){R.scale=1.2;R.key.shadow.mapSize.set(512,512);if(R.key.shadow.map){R.key.shadow.map.dispose();R.key.shadow.map=null}R.renderer.shadowMap.type=R.T.PCFShadowMap}
-  else if(R.q===2){R.scale=1;R.renderer.shadowMap.enabled=false;R.scene.traverse(o=>{if(o.material&&o.material.needsUpdate!==undefined)o.material.needsUpdate=true})}
+  if(R.q===1){R.scale=.65;R.key.shadow.mapSize.set(512,512);if(R.key.shadow.map){R.key.shadow.map.dispose();R.key.shadow.map=null}R.renderer.shadowMap.type=R.T.PCFShadowMap}
+  else if(R.q===2){R.scale=.55;R.renderer.shadowMap.enabled=false;R.scene.traverse(o=>{if(o.material&&o.material.needsUpdate!==undefined)o.material.needsUpdate=true})}
   else drop3();
   R.w=0;resize3()}
 function render3(rdt){
