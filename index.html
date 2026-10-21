@@ -126,7 +126,7 @@ button{font-family:inherit;cursor:pointer}
   <div class="card" id="mainCard">
     <div>
       <h1>RINGSIDE<span>32</span></h1>
-      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V17</span></p>
+      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V18</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
       <button id="go" class="big">SNABB MATCH</button>
@@ -174,6 +174,8 @@ const INVM=[1/3.5,1/5,1/9,1/10,1/1.8,1/1.4,1/1.8,1/1.4,1/3,1/2.5,1/3,1/2.5];
 const KB=[430,480,500,540,600,720,600,720,460,700,460,700];
 const ZT=[.8,.85,.85,.85,1,1,1,1,.85,.9,.85,.9];
 const COLR=[11,5,7,7,4,6,4,6,4,2,4,2];
+// animationsstyrd kropp (som Fight Night): poserna styr, träffar ger fjädrande reaktioner ovanpå. Full ragdoll först vid knockout.
+const RK=[150,190,210,250,260,300,260,300,300,2000,300,2000],RZ=[.4,.5,.55,.6,.6,.6,.6,.6,.6,1,.6,1],RSI=[.55,.6,.6,.5,.7,.7,.7,.7,.4,0,.4,0],RM=[19,10,9,6,14,16,14,16,6,0,6,0];
 const PT={straight:{w:.06,s:.09,r:.15,d:4.5,c:4},hook:{w:.11,s:.12,r:.22,d:8.5,c:8},upper:{w:.15,s:.12,r:.24,d:9.5,c:8},over:{w:.13,s:.13,r:.26,d:9.5,c:9}};
 const NAMES={straight:['JABB','RAK HÖGER'],hook:['VÄNSTERKROK','HÖGERKROK'],upper:['VÄNSTER UPPER','HÖGER UPPER'],over:['VÄNSTER OVERHAND','OVERHAND HÖGER']};
 const DIFF={latt:{react:.2,aggr:.42,think:[.45,.9],dmg:.8,counter:.1,side:.4,parry:.04,learn:.1,feint:.04},normal:{react:.4,aggr:.58,think:[.3,.65],dmg:1,counter:.3,side:.8,parry:.12,learn:.25,feint:.12},svar:{react:.6,aggr:.76,think:[.18,.42],dmg:1.18,counter:.55,side:1.3,parry:.25,learn:.42,feint:.25}};
@@ -450,11 +452,11 @@ class Fighter{
       [1,4,UA,1],[4,5,FA,1],[1,6,UA,1],[6,7,FA,1],[3,8,TH,1],[8,9,SH,1],[3,10,TH,1],[10,11,SH,1]];
   }
   computeTargets(t,dt){
-    const d=this.duckA,s=this.swayA,mv=Math.min(1,(Math.abs(this.root.vx)+Math.abs(this.circV||0)*55)/60),pu=this.punch,cl=inClinch(this);
-    const bounce=Math.sin(t*4.4+this.seed),bob=bounce*(this.stun>.5?.6:1.5)+Math.abs(Math.sin(this.walkPh))*1.6*mv;
+    const d=this.duckA,s=this.swayA,mv=Math.min(1,Math.abs(this.circV||0)*55/60),mvW=Math.min(1,Math.abs(this.root.vx)/60),pu=this.punch,cl=inClinch(this);
+    const bounce=Math.sin(t*4.4+this.seed),bob=bounce*(this.stun>.5?.6:1.2)+Math.abs(Math.sin(this.walkPh))*1.2*Math.max(mv,mvW);
     const sl=this.slipA;
     const dd=Math.min(d,1.05),ss=Math.min(s,1.05);
-    let spA=.12+.46*dd-.36*ss+.1*Math.abs(sl),upA=.2+.5*dd-.42*ss,nkA=.3+.18*dd-.25*ss,px=-7*dd-6*ss+1.5*Math.abs(sl)+Math.sin(t*2.2+this.seed)*1.1,py=46-12*dd+bob-4*Math.abs(sl),tw=0;
+    let spA=.12+.46*dd-.36*ss+.1*Math.abs(sl),upA=.2+.5*dd-.42*ss,nkA=.3+.18*dd-.25*ss,px=-7*dd-6*ss+1.5*Math.abs(sl)+Math.sin(t*2.2+this.seed)*1.1,py=44-12*dd+bob-4*Math.abs(sl),tw=0;
     if(cl){spA+=.28;upA+=.2}
     if(pu){const k=pu.k;tw=(pu.hand?8:4)*(pu.hay?1.5:1)*k;
       if(pu.type==='upper'){const dp=11+(pu.dip||0)*5;
@@ -512,10 +514,20 @@ class Fighter{
     this.armL=[L1F,L2F,L1N,L2N];
     const aF=ik(nek.x,nek.y,hF.x,hF.y,L1F,L2F,-1),aN=ik(nek.x,nek.y,hN.x,hN.y,L1N,L2N,-1);
     if(pu&&pu.type==='hook'){const A=pu.hand?aN:aF,k=pu.phase==='wind'?ease(pu.s):pu.phase==='strike'?1:1-ease(pu.s),ex=lerp(A.ex,nek.x+(A.hx-nek.x)*.42,k),ey=lerp(A.ey,nek.y-1.5,k);A.ex=ex;A.ey=ey}
+    if(dt&&!this.down&&this.rising<=0&&this.sideT<=0){this.plant(0,fF,dt);this.plant(1,fN,dt)}else if(this.ft){this.ft[0].x=null;this.ft[1].x=null}
     const lF=ik(pel.x,pel.y,fF.x,fF.y,TH,SH,1),lN=ik(pel.x,pel.y,fN.x,fN.y,TH,SH,1);
     const L=[hed,nek,che,pel,{x:aF.ex,y:aF.ey},{x:aF.hx,y:aF.hy},{x:aN.ex,y:aN.ey},{x:aN.hx,y:aN.hy},{x:lF.ex,y:lF.ey},{x:lF.hx,y:lF.hy},{x:lN.ex,y:lN.ey},{x:lN.hx,y:lN.hy}];
     this.nekL=nek;
     for(let i=0;i<12;i++){const q=this.p[i];q.tx=this.root.x+L[i].x*this.face;q.ty=GROUND-L[i].y}
+  }
+  // fötterna står kvar i golvet tills kroppen dragit för långt – då tas ett snabbt steg (ingen glidning)
+  plant(k,ft,dt){
+    const S=this.ft||(this.ft=[{x:null,from:0,t:1},{x:null,from:0,t:1}]),s=S[k],o=S[1-k],want=this.root.x+ft.x*this.face;
+    if(s.x===null){s.x=want;s.t=1;return}
+    let lift=0;
+    if(s.t<1){s.t=Math.min(1,s.t+dt/.13);s.x=lerp(s.from,want,ease(s.t));lift=Math.sin(s.t*Math.PI)*4.5}
+    else if(Math.abs(want-s.x)>(this.punch?4:6.5)&&o.t>=1){s.from=s.x;s.t=0;if(Math.abs(want-s.x)>9&&!this.isAI)SFX.step&&Math.random()<.25&&SFX.step()}
+    ft.x=(s.x-this.root.x)*this.face;ft.y+=lift;
   }
   punchHand(pu,g,nek){
     const lim=pu.type==='hook'?REACH*.86:REACH*.97;
@@ -597,6 +609,8 @@ class Fighter{
     else if(this.trail.length)this.trail.shift();
   }
   physics(dt){
+    if(!this.down&&this.rising<=0)return this.kinPhysics(dt);
+    this.kinWas=false;
     const o=this.opp,P=this.p,tone=this.tone,rvx=this.down?0:this.root.vx,pu=this.punch,strike=pu&&pu.phase!=='wind'?pu.hand:-1;
     const bo=this.bones,AL=this.armL,f=this.face;bo[5][2]=AL[0];bo[6][2]=AL[1];bo[7][2]=AL[2];bo[8][2]=AL[3];
     for(let i=0;i<12;i++){
@@ -622,6 +636,31 @@ class Fighter{
     for(let i=0;i<12;i++){const q=P[i];q.vx=(q.qx-q.x)/dt;q.vy=(q.qy-q.y)/dt;q.x=q.qx;q.y=q.qy;
       if(q.y>=GROUND-COLR[i]-.01){q.vx*=(i===9||i===11)&&tone>.4?.5:.9;if(q.vy>0)q.vy=0}
       if(q.x<RING_L+4){q.x=RING_L+4;q.vx=Math.abs(q.vx)*.3}else if(q.x>RING_R-4){q.x=RING_R-4;q.vx=-Math.abs(q.vx)*.3}}
+  }
+  kinPhysics(dt){
+    const P=this.p,o=this.opp,f=this.face,bo=this.bones,AL=this.armL;bo[5][2]=AL[0];bo[6][2]=AL[1];bo[7][2]=AL[2];bo[8][2]=AL[3];
+    const R=this.rx||(this.rx=P.map(()=>({x:0,y:0,vx:0,vy:0})));
+    if(!this.kinWas){for(let i=0;i<12;i++){const q=P[i],r=R[i],m=RM[i]*1.5;r.x=clamp(q.x-q.tx,-m,m);r.y=clamp(q.y-q.ty,-m,m);r.vx=r.vy=0;q.vk=q.vx;q.vkY=q.vy}}
+    this.kinWas=true;
+    // externa impulser (träffar, block, pareringar) läggs på reaktionsfjädrarna och fortplantas ner genom kedjan
+    const ex=[],ey=[];for(let i=0;i<12;i++){const q=P[i];ex[i]=(q.vx-(q.vk||0))*RSI[i];ey[i]=(q.vy-(q.vkY||0))*RSI[i]}
+    ex[1]+=ex[0]*.35;ey[1]+=ey[0]*.3;ex[2]+=ex[0]*.15+ex[1]*.2;ey[2]+=ey[0]*.1;ex[3]+=ex[2]*.3;ey[3]+=ey[2]*.25;ex[1]+=ex[2]*.3;
+    ex[8]+=ex[3]*.4;ex[10]+=ex[3]*.4;
+    const st=Math.min(1,this.stun),soft=1-.5*st;
+    for(let i=0;i<12;i++){const q=P[i],r=R[i];r.vx+=ex[i];r.vy+=ey[i];
+      let K=RK[i]*soft;if(i===0)K*=1-.6*this.headDip;else if(i===1)K*=1-.3*this.headDip;
+      const D=2*Math.sqrt(K)*RZ[i];r.vx+=(-r.x*K-r.vx*D)*dt;r.vy+=(-r.y*K-r.vy*D)*dt;r.x+=r.vx*dt;r.y+=r.vy*dt;
+      const m=RM[i],l=Math.hypot(r.x,r.y);if(m===0){r.x=r.y=r.vx=r.vy=0}else if(l>m){r.x*=m/l;r.y*=m/l;const vr=(r.vx*r.x+r.vy*r.y)/(m*m);if(vr>0){r.vx-=r.x*vr;r.vy-=r.y*vr}}
+      q.qx=q.tx+r.x;q.qy=q.ty+r.y}
+    for(let it=0;it<3;it++){
+      for(let j=0;j<5;j++){const[a,b,L,s]=bo[j],A=P[a],B=P[b],dx=B.qx-A.qx,dy=B.qy-A.qy,d=Math.hypot(dx,dy)||1e-6,k=(d-L)/d*s*.6,wa=INVM[a],wb=INVM[b],ws=wa+wb;
+        A.qx+=dx*k*wa/ws;A.qy+=dy*k*wa/ws;B.qx-=dx*k*wb/ws;B.qy-=dy*k*wb/ws}
+      shoulderLim(P,4,f);shoulderLim(P,6,f);hinge(P,1,4,5,-1,f);hinge(P,1,6,7,-1,f);minDist(P,1,5,12);minDist(P,1,7,12);
+      if(o&&o.bones)this.noClip(P,o);
+      for(let i=0;i<12;i++){const q=P[i],gy=GROUND-COLR[i];if(q.qy>gy)q.qy=gy}
+    }
+    for(let i=0;i<12;i++){const q=P[i];q.vx=(q.qx-q.x)/dt;q.vy=(q.qy-q.y)/dt;q.x=q.qx;q.y=q.qy;
+      if(q.x<RING_L+4)q.x=RING_L+4;else if(q.x>RING_R-4)q.x=RING_R-4;q.vk=q.vx;q.vkY=q.vy}
   }
   // armarna får inte gå igenom motståndaren: handskar, armbågar och underarmens mitt trycks ut ur huvud och bål
   noClip(P,o){
