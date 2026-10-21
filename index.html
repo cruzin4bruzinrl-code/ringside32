@@ -122,7 +122,7 @@ button{font-family:inherit;cursor:pointer}
   <div class="card" id="mainCard">
     <div>
       <h1>RINGSIDE<span>32</span></h1>
-      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V15</span></p>
+      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V16</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
       <button id="go" class="big">SNABB MATCH</button>
@@ -338,21 +338,24 @@ function arenaFront(){for(const f of frontQ)f()}
 // ---------- 3D-renderare i 32-bitars pixelstil ----------
 const FACES=[],BB=[1e9,1e9,-1e9,-1e9];let PID=0;
 const IDC=Array.from({length:32},(_,i)=>`rgb(${i*8},0,0)`);
-function face(pts,n,mat,zb=0,ref=null){
+function face(pts,n,mat,zb=0,ref=null,vr=null){
   let cx=0,cy=0,cz=0;const m=pts.length;for(const p of pts){cx+=p[0];cy+=p[1];cz+=p[2]}cx/=m;cy/=m;cz/=m;
   if(!n){n=cross(vsub(pts[1],pts[0]),vsub(pts[2],pts[0]));if(ref&&n[0]*(cx-ref[0])+n[1]*(cy-ref[1])+n[2]*(cz-ref[2])<0)n=vmul(n,-1)}
   if((cx-CAM.px)*n[0]+(cy-CAM.py)*n[1]+(cz-CAM.pz)*n[2]>=0)return;
-  const nl=Math.hypot(n[0],n[1],n[2])||1,lam=(n[0]*LX+n[1]*LY+n[2]*LZ)/nl,R=ramp(mat);
-  const col=R[lam<-.02?0:lam<.48?1:lam<.82?2:3];
+  const nl=Math.hypot(n[0],n[1],n[2])||1,lam=(n[0]*LX+n[1]*LY+n[2]*LZ)/nl;let col,ks=null;
+  if(vr){ks=pts.map((p,i)=>{const r=vr.length===3&&typeof vr[0]==='number'?vr:vr[i],v=vnorm(vsub(p,r)),l=v[0]*LX+v[1]*LY+v[2]*LZ,vw=vnorm([CAM.px-p[0],CAM.py-p[1],CAM.pz-p[2]]),rim=1-Math.abs(v[0]*vw[0]+v[1]*vw[1]+v[2]*vw[2]);return clamp(.26+.66*Math.max(0,l)+.22*rim*rim,0,1.05)});col=null}
+  else col=shadeK(mat,clamp(.26+.66*Math.max(0,lam)+.08,0,1));
   const sp=[];let zs=0;
   for(const p of pts){const c=toCam(p[0],p[1],p[2]);if(c[2]<NEAR)return;const s=pj(c[0],c[1],c[2]),x=Math.round(s[0]*RSc)/RSc,y=Math.round(s[1]*RSc)/RSc;sp.push(x,y);zs+=c[2];
     if(x<BB[0])BB[0]=x;if(y<BB[1])BB[1]=y;if(x>BB[2])BB[2]=x;if(y>BB[3])BB[3]=y}
-  FACES.push({sp,z:zs/m-zb,col,pid:PID});
+  FACES.push({sp,z:zs/m-zb,col,ks,mat,pid:PID});
 }
+const SHK=new Map();
+function shadeK(mat,k){const q=Math.round(k*40),key=mat+q;let v=SHK.get(key);if(v)return v;const R=ramp(mat),st=[0,.42,.74,1],t=q/40;let i=0;while(i<2&&t>st[i+1])i++;const u=clamp((t-st[i])/(st[i+1]-st[i]),0,1),a=parseInt(R[i].slice(1),16),b=parseInt(R[i+1].slice(1),16),mix=(sh)=>Math.round(((a>>sh)&255)*(1-u)+((b>>sh)&255)*u);v=`rgb(${mix(16)},${mix(8)},${mix(0)})`;SHK.set(key,v);return v}
 function prism(a,b,ra,rb,n,mat,rot=0){
   const u=vnorm(vsub(b,a)),[e1,e2]=perp(u),A=[],B=[];
   for(let i=0;i<n;i++){const t=rot+i/n*6.2832,c=Math.cos(t),s=Math.sin(t),d=[e1[0]*c+e2[0]*s,e1[1]*c+e2[1]*s,e1[2]*c+e2[2]*s];A.push(vadd(a,vmul(d,ra)));B.push(vadd(b,vmul(d,rb)))}
-  for(let i=0;i<n;i++){const j=(i+1)%n,t=rot+(i+.5)/n*6.2832,c=Math.cos(t),s=Math.sin(t);face([A[i],A[j],B[j],B[i]],[e1[0]*c+e2[0]*s,e1[1]*c+e2[1]*s,e1[2]*c+e2[2]*s],mat)}
+  for(let i=0;i<n;i++){const j=(i+1)%n,t=rot+(i+.5)/n*6.2832,c=Math.cos(t),s=Math.sin(t);face([A[i],A[j],B[j],B[i]],[e1[0]*c+e2[0]*s,e1[1]*c+e2[1]*s,e1[2]*c+e2[2]*s],mat,0,null,n>4?[a,a,b,b]:null)}
   face(A,vmul(u,-1),mat);face(B,u,mat);
 }
 function ell(c,F,U,S,nLat,nLon,mat,colFn,disp,tint){
@@ -366,23 +369,26 @@ function ell(c,F,U,S,nLat,nLon,mat,colFn,disp,tint){
     let mx=0,my=0,mz=0;for(const p of pts){mx+=p[0];my+=p[1];mz+=p[2]}const m=pts.length,ctr=[mx/m,my/m,mz/m];
     let col2=(tint&&tint(ctr))||null;
     if(!col2){col2=mat;if(colFn){const thm=(i+.5)/nLat*Math.PI,phm=(j+.5)/nLon*6.2832,r=Math.sin(thm);col2=colFn(r*Math.cos(phm),Math.cos(thm),r*Math.sin(phm))}}
-    face(pts,disp?null:vsub(ctr,c),col2,0,c)}
+    face(pts,disp?null:vsub(ctr,c),col2,0,c,c)}
 }
 function quad(ctr,a,b,col,c0,zb=.6){face([vadd(vadd(ctr,a),b),vsub(vadd(ctr,a),b),vsub(vsub(ctr,a),b),vadd(vsub(ctr,a),b)],vsub(ctr,c0),col,zb)}
 function flush(c,ic){
   FACES.sort((a,b)=>b.z-a.z);c.lineJoin=ic.lineJoin='round';c.lineWidth=ic.lineWidth=.6;
   for(const f of FACES){const s=f.sp,p=new Path2D();p.moveTo(s[0],s[1]);for(let i=2;i<s.length;i+=2)p.lineTo(s[i],s[i+1]);p.closePath();
-    c.fillStyle=c.strokeStyle=f.col;c.fill(p);c.stroke(p);ic.fillStyle=ic.strokeStyle=IDC[f.pid];ic.fill(p);ic.stroke(p)}
+    if(f.ks){let lo=0,hi=0;for(let i=1;i<f.ks.length;i++){if(f.ks[i]<f.ks[lo])lo=i;if(f.ks[i]>f.ks[hi])hi=i}const c0=shadeK(f.mat,f.ks[lo]),c1=shadeK(f.mat,f.ks[hi]);
+      if(f.ks[hi]-f.ks[lo]<.03||lo===hi){c.fillStyle=c.strokeStyle=c0}else{const g=c.createLinearGradient(s[lo*2],s[lo*2+1],s[hi*2],s[hi*2+1]);g.addColorStop(0,c0);g.addColorStop(1,c1);c.fillStyle=c.strokeStyle=g}}
+    else c.fillStyle=c.strokeStyle=f.col;
+    c.fill(p);c.stroke(p);ic.fillStyle=ic.strokeStyle=IDC[f.pid];ic.fill(p);ic.stroke(p)}
 }
 // sprite-pass: hårda kanter, 15-bitars palett, svart kontur runt figuren och mörka linjer mellan kroppsdelar
 function spritePass(){
   if(BB[2]<BB[0])return;
   const PW_=W*RSc,PH_=H*RSc,x0=clamp(BB[0]*RSc-3,0,PW_-1)|0,y0=clamp(BB[1]*RSc-3,0,PH_-1)|0,x1=clamp(BB[2]*RSc+3,0,PW_-1)|0,y1=clamp(BB[3]*RSc+3,0,PH_-1)|0,w=x1-x0+1,h=y1-y0+1;if(w<2||h<2)return;
   const im=fctx.getImageData(x0,y0,w,h),d=im.data,idd=ictx.getImageData(x0,y0,w,h).data,n=w*h,A=new Uint8Array(n),ID=new Uint8Array(n);
-  for(let i=0,j=0;i<n;i++,j+=4){if(d[j+3]>=128){A[i]=1;ID[i]=(idd[j]+4)>>3;d[j+3]=255;d[j]&=0xF8;d[j+1]&=0xF8;d[j+2]&=0xF8}else d[j+3]=0}
+  for(let i=0,j=0;i<n;i++,j+=4){if(d[j+3]>=128){A[i]=1;ID[i]=(idd[j]+4)>>3;d[j+3]=255}else d[j+3]=0}
   for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x,j=i*4;
     if(!A[i]){if((x>0&&A[i-1])||(x<w-1&&A[i+1])||(y>0&&A[i-w])||(y<h-1&&A[i+w])){d[j]=16;d[j+1]=8;d[j+2]=16;d[j+3]=255}continue}
-    const id=ID[i];if((x<w-1&&A[i+1]&&ID[i+1]!==id)||(y<h-1&&A[i+w]&&ID[i+w]!==id)){d[j]=d[j]*.4;d[j+1]=d[j+1]*.36;d[j+2]=d[j+2]*.46}}
+    const id=ID[i];if((x<w-1&&A[i+1]&&ID[i+1]!==id)||(y<h-1&&A[i+w]&&ID[i+w]!==id)){d[j]=d[j]*.62;d[j+1]=d[j+1]*.58;d[j+2]=d[j+2]*.66}}
   fctx.putImageData(im,x0,y0);
 }
 
@@ -572,6 +578,7 @@ class Fighter{
     this.walkPh+=this.root.vx*dt*.2;
     this.sideT=Math.max(0,this.sideT-dt);
     if(!this.punch)this.stam=Math.min(60+40*this.body/100,this.stam+dt*(this.blocking?5:12)*(this.stun>.5?.5:1)*this.sKond);
+    this.stam=Math.max(0,this.stam-(this.duckA+this.swayA+Math.abs(this.slipA))*dt*3.2);
     this.stun=Math.max(0,this.stun-dt*.5);this.toneDip=Math.max(0,this.toneDip-dt*2);this.headDip=Math.max(0,this.headDip-dt*3.5);
     if(this.rising>0){this.rising+=dt/1.1;if(this.rising>=1)this.rising=0}
     const base=this.rising>0?.02+.98*ease(this.rising):1-Math.min(1,this.stun)*.45;
@@ -649,7 +656,7 @@ function loft(a,b,prof,n,mat,bd,colFn){
     for(let k=0;k<n;k++){const th=k/n*6.2832,co=Math.cos(th),si=Math.sin(th),d=[e1[0]*co+e2[0]*si,e1[1]*co+e2[1]*si,e1[2]*co+e2[2]*si];let rr=r;
       if(bdn&&bg){const dd=d[0]*bdn[0]+d[1]*bdn[1]+d[2]*bdn[2];if(dd>0)rr*=1+bg*dd*dd}ring.push(vadd(c,vmul(d,rr)))}return{c,ring}});
   for(let i=0;i<R.length-1;i++){const mc=vlerp(R[i].c,R[i+1].c,.5);for(let k=0;k<n;k++){const k2=(k+1)%n,th=(k+.5)/n*6.2832,dm=[e1[0]*Math.cos(th)+e2[0]*Math.sin(th),e1[1]*Math.cos(th)+e2[1]*Math.sin(th),e1[2]*Math.cos(th)+e2[2]*Math.sin(th)];
-    face([R[i].ring[k],R[i].ring[k2],R[i+1].ring[k2],R[i+1].ring[k]],null,colFn?colFn(i,k,dm):mat,0,mc)}}
+    face([R[i].ring[k],R[i].ring[k2],R[i+1].ring[k2],R[i+1].ring[k]],null,colFn?colFn(i,k,dm):mat,0,mc,[R[i].c,R[i].c,R[i+1].c,R[i+1].c])}}
   face(R[0].ring,vmul(u,-1),colFn?colFn(-1,0,vmul(u,-1)):mat);face(R[R.length-1].ring,u,colFn?colFn(R.length-1,0,u):mat);
 }
 const vdot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
@@ -675,7 +682,7 @@ function fighterMesh(f){
       a.push(p)}return{C,a}});
   for(let i=0;i<RV.length-1;i++){const mc=vlerp(RV[i].C,RV[i+1].C,.5);for(let k=0;k<NS;k++){const k2=(k+1)%NS,pts=[RV[i].a[k],RV[i].a[k2],RV[i+1].a[k2],RV[i+1].a[k]];
     let col=segC[i];if(bRips.length&&i>=2){const ctr=vlerp(vlerp(pts[0],pts[2],.5),vlerp(pts[1],pts[3],.5),.5);col=tint(ctr)||col}
-    face(pts,null,col,0,mc)}}
+    face(pts,null,col,0,mc,[RV[i].C,RV[i].C,RV[i+1].C,RV[i+1].C])}}
   face(RV[0].a,vmul(upW,-1),lk.trunk);face(RV[RV.length-1].a,upW,lk.skin);
   // muskeldefinition: bröstlinje, magrutor, linea alba, nyckelben, bröstvårtor
   { const det=hx(lk.skin,.56),tpnt=(ri,kk)=>{const i0=Math.min(RV.length-2,Math.floor(ri)),t=ri-i0,k0=((Math.floor(kk)%NS)+NS)%NS,k1=(k0+1)%NS,u=kk-Math.floor(kk);
@@ -694,12 +701,12 @@ function fighterMesh(f){
   for(const[e,h,s]of[[4,5,sF],[6,7,-sF]]){
     PID=B0+2+ai;
     const fwT=rotF(th0),sdT=rotS(th0),sh=vadd(lp2(1,-3,0,0),vmul(sdT,10*s)),el=W3(e),hd=W3(h),dir=vnorm(vsub(hd,el)),wr=vsub(hd,vmul(dir,2.5));
-    ell(vadd(sh,vmul(upW,.6)),vmul(fwT,5.8),vmul(upW,5.6),vmul(sdT,5.4),4,7,lk.skin);
-    loft(sh,el,[[0,4.9],[.35,5.2,.22],[.72,4.5],[1,3.9]],8,lk.skin,dir);
-    loft(el,wr,[[0,3.9],[.25,4.5,.14],[.7,3.6],[1,3.1]],8,lk.skin,vsub(sh,el));
+    ell(vadd(sh,vmul(upW,.6)),vmul(fwT,5.8),vmul(upW,5.6),vmul(sdT,5.4),6,10,lk.skin);
+    loft(sh,el,[[0,4.9],[.2,5.1,.12],[.4,5.2,.22],[.6,4.9,.12],[.8,4.3],[1,3.9]],10,lk.skin,dir);
+    loft(el,wr,[[0,3.9],[.2,4.4,.12],[.4,4.3,.1],[.7,3.6],[1,3.1]],10,lk.skin,vsub(sh,el));
     PID=B0+4+ai;
     const gb=vadd(hd,vmul(dir,8.6)),gtrim=hx(lk.glove,.62);
-    loft(wr,gb,[[0,4.7],[.14,4.8],[.2,5.9],[.46,7.1,.14],[.76,7.4,.1],[.93,6.2],[1,3.4]],10,lk.glove,fwW,(i)=>i===0?'#efe9dc':i===1?gtrim:lk.glove);
+    loft(wr,gb,[[0,4.7],[.14,4.8],[.2,5.9],[.33,6.7,.1],[.46,7.1,.14],[.62,7.4,.12],[.76,7.4,.1],[.88,6.8],[.95,5.6],[1,3.4]],12,lk.glove,fwW,(i)=>i===0?'#efe9dc':i===1?gtrim:lk.glove);
     const wu=[0,1,0],tv=vnorm(vsub(wu,vmul(dir,vdot(wu,dir)))),cr=vnorm(cross(dir,tv));
     ell(vadd(vlerp(wr,gb,.44),vadd(vmul(tv,4.8),vmul(cr,-3.4*s*sF))),vmul(tv,2.5),vmul(dir,3.8),vmul(cr,2.5),3,6,lk.glove);
     ai++;
@@ -708,11 +715,11 @@ function fighterMesh(f){
   for(const[k,ft,s]of[[8,9,sF],[10,11,-sF]]){
     const hip=lp2(3,-2,0,6*s),kn=W3(k),an=W3(ft),mid=vlerp(hip,kn,.5),bt=vlerp(kn,an,.58);
     PID=B0+6+li;
-    loft(vadd(hip,vmul(upW,3)),mid,[[0,9.2],[.55,9.5],[1,8.8]],10,lk.trunk,null,(i,kk,dm)=>Math.abs(vdot(dm,sdW))>.8?lk.band:i===1?hx(lk.trunk,.85):lk.trunk);
-    loft(vlerp(hip,kn,.42),kn,[[0,6.6],[.35,6.5,.2],[.8,5],[1,4.5]],8,lk.skin,fwW);
-    loft(kn,bt,[[0,4.4],[.28,5,.36],[.65,4.2],[1,3.9]],8,lk.skin,vmul(fwW,-1));
+    loft(vadd(hip,vmul(upW,3)),mid,[[0,9.2],[.3,9.5],[.6,9.5],[1,8.8]],14,lk.trunk,null,(i,kk,dm)=>Math.abs(vdot(dm,sdW))>.8?lk.band:i===1?hx(lk.trunk,.85):lk.trunk);
+    loft(vlerp(hip,kn,.42),kn,[[0,6.6],[.2,6.6,.12],[.4,6.4,.2],[.65,5.6,.1],[.85,4.9],[1,4.5]],10,lk.skin,fwW);
+    loft(kn,bt,[[0,4.4],[.15,4.8,.25],[.3,5,.36],[.5,4.6,.2],[.75,4.1],[1,3.9]],10,lk.skin,vmul(fwW,-1));
     PID=B0+8+li;
-    loft(bt,an,[[0,4.5],[.12,4.9],[1,4.5]],8,lk.boot,null,(i,kk,dm)=>i===0?sole:vdot(dm,fwW)>.72?lace:lk.boot);
+    loft(bt,an,[[0,4.5],[.12,4.9],[.5,4.7],[1,4.5]],12,lk.boot,null,(i,kk,dm)=>i===0?sole:vdot(dm,fwW)>.72?lace:lk.boot);
     const heel=L2W(P[ft].x-f.face*2.8,P[ft].y,z[ft]),toe=L2W(P[ft].x+f.face*8.4,P[ft].y+.6,z[ft]);
     prism(vadd(heel,[0,.6,0]),vadd(toe,[0,.4,0]),3.6,3,6,lk.boot,Math.PI/6);
     prism(vadd(heel,[0,-1.7,0]),vadd(toe,[0,-1.5,0]),3.3,3,4,sole,Math.PI/4);
@@ -749,7 +756,7 @@ function headMesh(f){
     if(lk.beard&&lu<-.25&&lf>-.05)return lk.beard;
     if(lf>.45&&lu>-.05&&lu<.5){const s=ls>0?1:0;if(f.swell[s]>1.1&&Math.abs(ls)>.2)return'#8a4a7a';if(bruise&&Math.abs(ls)>.2)return'#9a5a6a'}
     return lk.skin};
-  ell(c,vmul(Fv,RF),vmul(Uv,RU),vmul(Sv,RS),8,12,lk.skin,colFn,disp,ripTint(hRips));
+  ell(c,vmul(Fv,RF),vmul(Uv,RU),vmul(Sv,RS),9,14,lk.skin,colFn,disp,ripTint(hRips));
   const hp=(lf,lu,ls,o=1)=>{const l=Math.hypot(lf,lu,ls);lf/=l;lu/=l;ls/=l;const p=[c[0]+(Fv[0]*RF*lf+Uv[0]*RU*lu+Sv[0]*RS*ls)*o,c[1]+(Fv[1]*RF*lf+Uv[1]*RU*lu+Sv[1]*RS*ls)*o,c[2]+(Fv[2]*RF*lf+Uv[2]*RU*lu+Sv[2]*RS*ls)*o];return vadd(p,disp(lf,lu,ls,p))};
   const shutAll=f.down||f.stun>1.1,lip=hx(lk.skin,.72);
   const sh2=hx(lk.skin,.7);
@@ -1093,6 +1100,11 @@ function aiThink(f,dt){
     c.circle=ropeBehind<70?(Math.random()<.5?1:-1)*rand(.6,1):Math.random()<.3?(Math.random()<.5?1:-1)*rand(.4,.9):0;
     if(dist<80&&!f.punch&&!ai.q.length&&f.stam>14&&Math.random()<D.aggr*(low?.6:1)*(o.stun>.5||o.guardBreakT>0?1.5:1)){
       const cmb=COMBOS[Math.random()*COMBOS.length|0],hay=(o.stun>.6||o.guardBreakT>0)&&Math.random()<.4*D.aggr;
+      if(Math.random()<D.react*.6){const sf=o.face*o.stance;
+        if(o.duckA>.35)ai.q=[{type:'upper',hand:Math.random()<.5?0:1,body:false,hay:false,delay:0}];
+        else if(Math.abs(o.slipA)>.3){const want=Math.sign(o.slipA),hand=(f.face*f.stance)===want?0:1;ai.q=[{type:'hook',hand,body:false,hay:false,delay:0}]}
+        else if(o.swayA>.35){c.move=tw;ai.q=[{type:'straight',hand:1,body:false,hay:false,delay:.08}]}
+        if(ai.q.length)return}
       const mir=Math.random()<.45;ai.q=cmb.map((p,i)=>({type:p[0],hand:mir?1-p[1]:p[1],body:Math.random()<.22,hay:hay&&i===cmb.length-1,delay:0}));
       if(Math.random()<D.feint)ai.q.unshift({type:'straight',hand:0,body:false,hay:false,delay:0,feint:true});
       c.move=tw*.6;
@@ -1223,12 +1235,12 @@ function stepMove(f,inward){if(f.down||f.rising>0||inClinch(f)||f.stam<3)return;
 function startDodge(f,type,dir=0){if(f.dodgeCD>0||f.down||f.rising>0||inClinch(f)||f.stam<4)return false;if(f.punch&&f.punch.phase!=='rec')return false;f.dodge={type,dir,t:.42};f.dodgeCD=.5;f.stam-=3;SFX.whoosh(false);return true}
 function evadeCheck(a,b,pu,g){
   if(pu.ev||pu.body||pu.phase!=='strike'||pu.s<.45)return false;
-  if(!(b.duckA>.65||b.swayA>.65||Math.abs(b.slipA)>.6))return false;
+  if(!(b.duckA>.42||b.swayA>.42||Math.abs(b.slipA)>.38))return false;
   if(Math.hypot(g.x-b.p[0].x,g.y-b.p[0].y)>38)return false;
   pu.ev=true;const sd=sideZ(a,pu),t=pu.type;let miss=false,lab='';
-  if(Math.abs(b.slipA)>.5){if(t==='straight'||t==='upper'){miss=true;lab='SLIPPAD!'}else if(Math.sign(b.slipA)===sd){pu.into=1.3;lab='RAKT IN I KROKEN!'}else{miss=true;lab='SLIPPAD!'}}
-  else if(b.duckA>.6){if(t==='upper'){pu.into=1.3;lab='IN I UPPERCUTEN!'}else{miss=true;lab='DUCKAD!'}}
-  else if(b.swayA>.6){if(clamp(a.root.vx*a.face/78,-1,1)>.5)pu.into=1.15;else{miss=true;lab='VÄJD!'}}
+  if(Math.abs(b.slipA)>.38){if(t==='straight'||t==='upper'){miss=true;lab='SLIPPAD!'}else if(Math.sign(b.slipA)===sd){pu.into=1.3;lab='RAKT IN I KROKEN!'}else{miss=true;lab='SLIPPAD!'}}
+  else if(b.duckA>.42){if(t==='upper'){pu.into=1.3;lab='IN I UPPERCUTEN!'}else{miss=true;lab='DUCKAD!'}}
+  else if(b.swayA>.42){if(clamp(a.root.vx*a.face/78,-1,1)>.5)pu.into=1.15;else{miss=true;lab='VÄJD!'}}
   if(lab)pop(lab,miss?'#9fd0ff':'#ff6a4a',.24);
   if(miss){pu.hit=true;b.counterT=.75;if(t!=='straight'||pu.hay){a.stun=Math.max(a.stun,.32);a.root.vx+=a.face*70}a.stam=Math.max(0,a.stam-2);SFX.whoosh(true);game.hitstop=Math.max(game.hitstop,.05);game.hype+=.4}
   return miss;
@@ -1240,7 +1252,7 @@ function playerCtrl(dt=1/120){
     // riktning mot motståndaren på skärmen
     const me=P3(f.p[3].x,f.p[3].y,0),op=P3(f.opp.p[3].x,f.opp.p[3].y,0),sdir=me&&op?(op[0]>=me[0]?1:-1):f.face;
     input.sdir=sdir;if(d>1){dx/=d;dy/=d}
-    const lx=dx*sdir,cv=v=>{const a=Math.max(0,Math.abs(v)-.18)/.82;return Math.sign(v)*a*a*(3-2*a)},dz=cv(lx),dzy=cv(dy);
+    const lx=dx*sdir,cv=v=>{const a=clamp((Math.abs(v)-.15)/.6,0,1);return Math.sign(v)*a*a*(3-2*a)},dz=cv(lx),dzy=cv(dy);
     dV=Math.max(0,dz);sV=Math.max(0,-dz);slp=-dzy}
   if(keys.KeyA||keys.ArrowLeft)mx=-1;if(keys.KeyD||keys.ArrowRight)mx=1;if(keys.KeyS||keys.ArrowDown)dn=true;if(keys.KeyW||keys.ArrowUp)up=true;
   // fotspaken (nere i hörnet): ←→ gå, ↑↓ cirkla
