@@ -126,7 +126,7 @@ button{font-family:inherit;cursor:pointer}
   <div class="card" id="mainCard">
     <div>
       <h1>RINGSIDE<span>32</span></h1>
-      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V27</span></p>
+      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V28</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
       <button id="go" class="big">SNABB MATCH</button>
@@ -1658,6 +1658,64 @@ function humanMesh(T,key,mat){
   const ra={};for(const s of'LR'){const S=bh[BI['uarm.'+s]],E=bh[BI['farm.'+s]],Wr=bt[BI['farm.'+s]],u=vnorm(vsub(Wr,S)),d=vsub(E,S);ra[s]=vnorm(vsub(d,vmul(u,vdot(d,u))))}
   return{mesh,bones,bh,bt,BI,par:J.parent,ra,reg:cp('reg'+key,Uint8Array),sh:J.buf['sh'+key]?cp('sh'+key,Uint8Array):null,eyes:V.eyes.map(e=>e.map(x=>x*HS)),Q:bones.map(()=>new T.Quaternion()),P:bones.map(()=>[0,0,0]),look:null,arm:[{},{}],leg:[{},{}]};
 }
+// ---------- stiliserad low poly-boxare (som konceptbilden): byggd av kantiga loftade delar, skinnad till samma skelett ----------
+// regioner: 0 hud 1 shorts 2 midjeband/rand 3 hår 4 skägg 5 läppar 6 mörkt (ögon/bryn) 7 vitt
+function stylMesh(T,key,mat){
+  const J=HUM.j,V=J.vars[key],bh=J.bones.map(b=>V.bones[b][0].map(x=>x*HS)),bt=J.bones.map(b=>V.bones[b][1].map(x=>x*HS)),BI={};J.bones.forEach((n,i)=>BI[n]=i);
+  const pos=[],col=[],si=[],sw=[],idx=[],freg=[],sw0=Math.abs(bh[BI['uarm.L']][0]),S=sw0;
+  const vert=(p,r,w)=>{pos.push(p[0],p[1],p[2]);col.push(r);const a=w.slice(0,4);while(a.length<4)a.push([0,0]);const tot=a.reduce((s,q)=>s+q[1],0)||1;a.forEach(q=>{si.push(q[0]);sw.push(q[1]/tot)});return pos.length/3-1};
+  // loft: ringar längs en axel; varje ring {c:[x,y,z], rx, rzf, rzb, w:[[ben,vikt]..], reg} ; X/Z = ringens sidor
+  const loft=(rings,X,Z,N,regFn,capA=true,capB=true)=>{const base=pos.length/3;
+    rings.forEach((g,ri)=>{for(let k=0;k<N;k++){const a=k/N*6.2832,c=Math.cos(a),s=Math.sin(a),rz=c>0?g.rzf:g.rzb,jit=g.j?g.j(k):1;
+      const p=vadd(g.c,vadd(vmul(X,s*g.rx*jit),vmul(Z,c*rz*jit)));vert(p,regFn?regFn(ri,k,c,s):g.reg||0,g.w)}});
+    for(let r=0;r<rings.length-1;r++)for(let k=0;k<N;k++){const a=base+r*N+k,b=base+r*N+(k+1)%N,c2=a+N,d=b+N;idx.push(a,c2,b,b,c2,d);freg.push(col[a],col[a])}
+    const cap=(ri,flip)=>{const g=rings[ri],m=vert(g.c,g.capReg??(regFn?regFn(ri,0,1,0):g.reg||0),g.w);for(let k=0;k<N;k++){const a=base+ri*N+k,b=base+ri*N+(k+1)%N;flip?idx.push(m,a,b):idx.push(m,b,a);freg.push(col[m])}};
+    if(capA)cap(0,false);if(capB)cap(rings.length-1,true)};
+  const box=(c,X,Y,Z,hx,hy,hz,reg,w)=>{const b=pos.length/3;for(const sx of[-1,1])for(const sy of[-1,1])for(const sz of[-1,1])vert(vadd(c,vadd(vmul(X,sx*hx),vadd(vmul(Y,sy*hy),vmul(Z,sz*hz)))),reg,w);
+    for(const f of[[0,1,3,2],[4,6,7,5],[0,4,5,1],[2,3,7,6],[0,2,6,4],[1,5,7,3]]){idx.push(b+f[0],b+f[1],b+f[2],b+f[0],b+f[2],b+f[3]);freg.push(reg,reg)}};
+  const X=[1,0,0],Y=[0,1,0],Z=[0,0,1],B=n=>BI[n];
+  // ---- bål (bäcken -> bröst -> axlar), shorts nedtill
+  const H0=bh[B('hips')],Nk=bh[B('neck')],tl=Nk[1]-H0[1],at=t=>[0,H0[1]+t*tl,lerp(H0[2],Nk[2],t)+.4];
+  const tw=t=>t<.22?[[B('hips'),1]]:t<.42?[[B('hips'),(.42-t)/.2],[B('spine'),(t-.22)/.2]]:t<.6?[[B('spine'),(.6-t)/.18],[B('chest'),(t-.42)/.18]]:[[B('chest'),1]];
+  const TP=[[-.16,.64,.48,.52],[0,.74,.52,.58],[.12,.72,.5,.52],[.2,.68,.5,.48],[.32,.68,.54,.48],[.44,.76,.6,.52],[.56,.94,.74,.58],[.68,1.1,.8,.62],[.8,1.2,.7,.62],[.9,1.14,.56,.56],[.97,.72,.46,.44],[1.02,.46,.38,.36]];
+  loft(TP.map(([t,rx,zf,zb])=>({c:at(t),rx:rx*S,rzf:zf*S,rzb:zb*S,w:tw(t),t,j:t>.5&&t<.75?(k=>{const a=k/12*6.2832,c=Math.cos(a),sn=Math.abs(Math.sin(a));return c>.2?1+.1*Math.exp(-(((sn-.5)/.22)**2))-.05*Math.exp(-((sn/.12)**2)):1}):null})),X,Z,12,(ri,k,c,s)=>{const t=TP[ri][0];return t<.13?1:t<.21?2:0});
+  // ---- nacke
+  const Hd=bh[B('head')],Ht=bt[B('head')],hl=Math.hypot(...vsub(Ht,Hd));
+  loft([{c:vadd(Nk,[0,-1,.3]),rx:.56*S,rzf:.48*S,rzb:.46*S,w:[[B('neck'),1]]},{c:vadd(Hd,[0,-1,.8]),rx:.46*S,rzf:.44*S,rzb:.4*S,w:[[B('head'),.6],[B('neck'),.4]]}],X,Z,8,null,false,false);
+  // ---- huvud: kantig skalle med fyrkantig käke, framåtskjuten haka
+  const hc=t=>vadd(Hd,[0,-hl*.2+t*hl*1.3,hl*.14]),HW=[[B('head'),1]],HR=1.22;
+  const HP=[[0,.3,.36,.34],[.1,.42,.6,.42],[.24,.46,.62,.5],[.4,.5,.6,.56],[.56,.52,.6,.58],[.72,.5,.55,.58],[.86,.43,.46,.5],[.96,.28,.3,.32],[1,.1,.1,.1]];
+  loft(HP.map(([t,rx,zf,zb])=>({c:hc(t),rx:rx*hl*HR,rzf:zf*hl*HR,rzb:zb*hl*HR,w:HW})),X,Z,10,null,true,true);
+  // hår: kantiga tofsar ovanpå, lägre bak
+  const HPh=[[.62,.55,.5,.64],[.74,.56,.6,.64],[.86,.5,.54,.58],[.96,.38,.4,.44],[1.06,.16,.18,.2]];
+  loft(HPh.map(([t,rx,zf,zb],ri)=>({c:vadd(hc(t),[0,hl*.02,-hl*.03]),rx:rx*hl*HR,rzf:zf*hl*HR,rzb:zb*hl*HR,w:HW,j:k=>1+((k*7+ri*3)%5-2)*.035})),X,Z,10,(ri,k,c)=>ri===0&&c>.3?0:3,false,true);
+  for(const sx of[-1,1]){box(vadd(hc(.56),[sx*hl*.2,0,hl*.71]),X,Y,Z,hl*.08,hl*.035,hl*.03,6,HW);box(vadd(hc(.65),[sx*hl*.21,0,hl*.7]),X,Y,Z,hl*.12,hl*.028,hl*.04,6,HW);
+    box(vadd(hc(.48),[sx*hl*.62,0,0]),X,Y,Z,hl*.06,hl*.14,hl*.1,0,HW)}
+  box(vadd(hc(.44),[0,0,hl*.78]),X,Y,Z,hl*.07,hl*.12,hl*.08,0,HW);box(vadd(hc(.27),[0,0,hl*.72]),X,Y,Z,hl*.16,hl*.025,hl*.03,5,HW);
+  // ---- armar: stor deltoid, biceps, underarm
+  for(const s of'LR'){const ua=B('uarm.'+s),fa=B('farm.'+s),A=bh[ua],E=bh[fa],Wr=bt[fa],d1=vnorm(vsub(E,A)),d2=vnorm(vsub(Wr,E)),fr=(d)=>{const x=vnorm(cross(d,[0,0,1]).map((v,i)=>v||[1,0,0][i]));return[x,vnorm(cross(x,d))]};
+    let[x1,z1]=fr(d1);const L1=Math.hypot(...vsub(E,A));
+    loft([[-.2,.3],[0,.5],[.16,.55],[.4,.44],[.58,.46],[.82,.36],[1,.33]].map(([t,r])=>({c:vadd(A,vmul(d1,t*L1)),rx:r*S,rzf:r*S*(t>.3&&t<.7?1.1:1),rzb:r*S*.95,w:t<.85?[[ua,1]]:[[ua,.5],[fa,.5]]})),x1,z1,8,null,true,true);
+    let[x2,z2]=fr(d2);const L2=Math.hypot(...vsub(Wr,E));
+    loft([[0,.34],[.22,.42],[.5,.37],[.85,.28],[1.05,.25]].map(([t,r])=>({c:vadd(E,vmul(d2,t*L2)),rx:r*S,rzf:r*S,rzb:r*S,w:t<.1?[[fa,.6],[ua,.4]]:[[fa,1]]})),x2,z2,8,null,true,true)}
+  // ---- ben + vida shorts
+  for(const s of'LR'){const th=B('thigh.'+s),sh=B('shin.'+s),Hp=bh[th],K=bh[sh],An=bh[B('foot.'+s)],d1=vnorm(vsub(K,Hp)),d2=vnorm(vsub(An,K)),xs=s==='L'?1:-1;
+    const x1=vnorm(cross([0,0,1],d1)),z1=vnorm(cross(d1,x1)),L1=Math.hypot(...vsub(K,Hp)),L2=Math.hypot(...vsub(An,K));
+    loft([[0,.64],[.25,.66],[.55,.56],[.85,.44],[1,.4]].map(([t,r])=>({c:vadd(Hp,vmul(d1,t*L1)),rx:r*S,rzf:r*S*1.05,rzb:r*S,w:t<.85?[[th,1]]:[[th,.5],[sh,.5]]})),x1,z1,8,null,true,true);
+    const x2=vnorm(cross([0,0,1],d2)),z2=vnorm(cross(d2,x2));
+    loft([[0,.4],[.25,.5],[.5,.41],[.8,.31],[1,.28]].map(([t,r])=>({c:vadd(K,vmul(d2,t*L2)),rx:r*S,rzf:r*S,rzb:r*S*(t>.15&&t<.5?1.15:1),w:t<.1?[[sh,.6],[th,.4]]:[[sh,1]]})),x2,z2,8,null,true,true);
+    // shorts-ben: vidare och rakare, vit rand på utsidan
+    loft([[-.12,.76],[.2,.8],[.5,.8],[.58,.8]].map(([t,r])=>({c:vadd(vadd(Hp,vmul(d1,t*L1)),[xs*S*.06,0,0]),rx:r*S,rzf:r*S*.95,rzb:r*S*.95,w:t<.3?[[B('hips'),.5],[th,.5]]:[[th,1]]})),x1,z1,10,(ri,k,c,sn)=>sn*xs>.8?2:1,false,true)}
+  const g0=new T.BufferGeometry();g0.setAttribute('position',new T.Float32BufferAttribute(pos,3));g0.setIndex(idx);g0.setAttribute('skinIndex',new T.Uint16BufferAttribute(si,4));g0.setAttribute('skinWeight',new T.Float32BufferAttribute(sw,4));
+  const g=g0.toNonIndexed(),reg=new Uint8Array(idx.length);for(let t=0;t<idx.length;t+=3){const r=freg[t/3];reg[t]=reg[t+1]=reg[t+2]=r}
+  g.setAttribute('color',new T.Float32BufferAttribute(new Float32Array(idx.length*3).fill(.8),3));g.computeVertexNormals();
+  const bones=J.bones.map(n=>{const b=new T.Bone();b.name=n;return b});
+  J.parent.forEach((p,i)=>{const h=bh[i];if(p<0)bones[i].position.set(h[0],h[1],h[2]);else{const q=bh[p];bones[i].position.set(h[0]-q[0],h[1]-q[1],h[2]-q[2]);bones[p].add(bones[i])}});
+  const mesh=new T.SkinnedMesh(g,mat);mesh.add(bones[0]);mesh.updateMatrixWorld(true);mesh.bind(new T.Skeleton(bones));mesh.castShadow=mesh.receiveShadow=true;mesh.frustumCulled=false;
+  const ra={};for(const s of'LR'){const A=bh[BI['uarm.'+s]],E=bh[BI['farm.'+s]],Wr=bt[BI['farm.'+s]],u=vnorm(vsub(Wr,A)),d=vsub(E,A);ra[s]=vnorm(vsub(d,vmul(u,vdot(d,u))))}
+  const eyes=[-1,1].map(sx=>{const c=vadd(hc(.56),[sx*hl*.2,0,hl*.71]);return[c[0],c[1],c[2],.01]});
+  return{mesh,bones,bh,bt,BI,par:J.parent,ra,reg,sh:null,eyes,Q:bones.map(()=>new T.Quaternion()),P:bones.map(()=>[0,0,0]),look:null,arm:[{},{}],leg:[{},{}],styl:true};
+}
 function hq(){if(!HQ){const T=T3;HQ={m1:new T.Matrix4(),m2:new T.Matrix4(),m3:new T.Matrix4(),q:new T.Quaternion(),q2:new T.Quaternion(),v:new T.Vector3(),s:new T.Vector3()}}return HQ}
 function qrot(q,a){const v=hq().v.set(a[0],a[1],a[2]).applyQuaternion(q);return[v.x,v.y,v.z]}
 // rotation som för vilo-ramen (riktning + hjälpvektor) till världsramen
@@ -1684,7 +1742,7 @@ function human3(o){
   for(const r of f.rip)r.w=ripWorld(f,r);
   const{BI,bh,bt,Q,par}=h,Pw=h.P,rest=i=>vsub(bt[i],bh[i]),len=i=>Math.hypot(...rest(i));
   if(h.look!==f.look){h.look=f.look;const lk=f.look,sk=lin(lk.skin),C=[sk,lin(lk.trunk),lin(lk.band),lin(lk.hair||hx(lk.skin,.8)),lin(lk.beard||hx(lk.skin,.85)),lin(hx(lk.skin,.74))];
-    C[5]=[C[5][0]*1.08,C[5][1]*.82,C[5][2]*.82];const a=h.mesh.geometry.attributes.color,si=h.mesh.geometry.attributes.skinIndex,sw=h.mesh.geometry.attributes.skinWeight,hb=h.BI.head,nb=h.BI.neck;for(let i=0;i<h.reg.length;i++){const top=si.getX(i),hw=(top===hb||top===nb)?sw.getX(i):0,c=C[h.reg[i]],k=h.sh?1-(1-h.sh[i]/255)*(1-hw):1,kr=k,kb=k*k*.85+.15*k;a.array[i*3]=c[0]*kr;a.array[i*3+1]=c[1]*(k*.94+.06*kb);a.array[i*3+2]=c[2]*kb}a.needsUpdate=true}
+    C[5]=[C[5][0]*1.08,C[5][1]*.82,C[5][2]*.82];C[6]=lin('#1c1210');C[7]=lin('#f2f0ea');const a=h.mesh.geometry.attributes.color,si=h.mesh.geometry.attributes.skinIndex,sw=h.mesh.geometry.attributes.skinWeight,hb=h.BI.head,nb=h.BI.neck;for(let i=0;i<h.reg.length;i++){const top=si.getX(i),hw=(top===hb||top===nb)?sw.getX(i):0,c=C[h.reg[i]],k=h.sh?1-(1-h.sh[i]/255)*(1-hw):1,kr=k,kb=k*k*.85+.15*k;a.array[i*3]=c[0]*kr;a.array[i*3+1]=c[1]*(k*.94+.06*kb);a.array[i*3+2]=c[2]*kb}a.needsUpdate=true}
   const put=(i,q)=>{const p=par[i];Pw[i]=p<0?Pel.slice():vadd(Pw[p],qrot(Q[p],vsub(bh[i],bh[p])));Q[i].copy(q);const b=h.bones[i];
     if(p<0){b.position.set(Pw[i][0],Pw[i][1],Pw[i][2]);b.quaternion.copy(q)}else b.quaternion.copy(H.q2.copy(Q[p]).invert().multiply(q))};
   const q=H.q,Z=[0,0,1];
@@ -1725,9 +1783,10 @@ function humanDress(o){
     loft3(o.glove[i],wr,gb,[[0,4.3],[.12,4.4],[.2,5.5],[.34,6.4,.1],[.48,6.8,.14],[.64,7,.12],[.78,7,.1],[.9,6.2],[.96,5],[1,3]],fwW,r=>r<=1?WH:r===2?GT:GL);
     const wu=[0,1,0],tv=vnorm(vsub(wu,vmul(A.dir,vdot(wu,A.dir)))),cr=vnorm(cross(A.dir,tv));
     ell3(o.thumb[i],vadd(vlerp(wr,gb,.44),vadd(vmul(tv,4.5),vmul(cr,(i?3.2:-3.2)))),vmul(tv,2.4),vmul(A.dir,3.7),vmul(cr,2.4),null,()=>GL)});
-  if(o.hair){o.hair.visible=!!lk.hair;if(lk.hair)o.hair.material.color.set(lk.hair)}
+  if(o.hair){o.hair.visible=!!lk.hair&&!h.styl;if(lk.hair)o.hair.material.color.set(lk.hair)}
+  o.shorts.forEach(g=>g.mesh.visible=!h.styl);
   {const hi=BI.hips,UPh=qrot(Q[hi],[0,1,0]),Xh=qrot(Q[hi],[1,0,0]),TRK=lin(lk.trunk),BND=lin(lk.band),TD=lin(hx(lk.trunk,.8)),leadS=f.stance===1?'R':'L';
-    ['L','R'].forEach(s=>{const lead=s===leadS,i=lead?0:1,th=BI['thigh.'+s],hip=Pw[th],kn=Pw[BI['shin.'+s]],top=vadd(vadd(hip,vmul(UPh,7.5)),vmul(Xh,s==='L'?-1.2:1.2)),bot=vlerp(hip,kn,.56),out=vmul(Xh,s==='L'?1:-1);
+    if(!h.styl)['L','R'].forEach(s=>{const lead=s===leadS,i=lead?0:1,th=BI['thigh.'+s],hip=Pw[th],kn=Pw[BI['shin.'+s]],top=vadd(vadd(hip,vmul(UPh,7.5)),vmul(Xh,s==='L'?-1.2:1.2)),bot=vlerp(hip,kn,.56),out=vmul(Xh,s==='L'?1:-1);
       loft3(o.shorts[i],top,bot,[[0,8.6],[.25,9.2],[.6,9.3],[.85,9],[1,8.7]],null,(r,ss,d)=>r===0?BND:vdot(d,out)>.94?BND:r>=6?TD:TRK)})}
   const lum=(()=>{const n=parseInt(lk.boot.slice(1),16);return((n>>16)+(n>>8&255)+(n&255))/3})(),LACE=lin(lum>128?'#8a8a90':'#dcdce0'),SOLE=lin(lum>128?'#3a3a40':'#ececee'),BT=lin(lk.boot);
   const WH2=lin('#f2f0ea');h.leg.forEach((L,i)=>{const top=vlerp(L.an,L.kn,.36),an=vadd(L.an,[0,-.6,0]);
@@ -1984,8 +2043,8 @@ function init3D(THREE){
     o.brows=[0,1].map(()=>{const b=new T.Mesh(new T.BoxGeometry(1,1,1),new T.MeshStandardMaterial({color:f.look.hair||'#241408',roughness:.9}));b.matrixAutoUpdate=false;grp.add(b);return b});
     o.mouth=new T.Mesh(new T.BoxGeometry(1,1,1),dark);o.mouth.matrixAutoUpdate=false;grp.add(o.mouth);
     if(HUM){try{
-      const hs=new T.MeshStandardMaterial({vertexColors:true,color:0xffffff,roughness:.62,flatShading:true});
-      o.hum=humanMesh(T,f.idx?'b':'a',hs);grp.add(o.hum.mesh);o.skin=o.torsoM=hs;o.xr=buildXray(T,o);
+      const hs=new T.MeshStandardMaterial({vertexColors:true,color:0xffffff,roughness:.62,flatShading:true,side:T.DoubleSide});
+      o.hum=stylMesh(T,f.idx?'b':'a',hs);grp.add(o.hum.mesh);o.skin=o.torsoM=hs;o.xr=buildXray(T,o);
       {const h=o.hum,hi=h.BI.head,H0=h.bh[hi],H1=h.bt[hi],hh=Math.hypot(...vsub(H1,H0)),g=new T.SphereGeometry(1,9,6,0,Math.PI*2,0,Math.PI*.56),pa=g.attributes.position;
         for(let i=0;i<pa.count;i++){const x=pa.getX(i),y=pa.getY(i),z=pa.getZ(i),n=1+.1*Math.sin(x*9+z*7)*Math.sin(y*11+x*5)+.06*Math.sin(z*17);pa.setXYZ(i,x*n,y*n,z*n)}g.computeVertexNormals();
         const hair=new T.Mesh(g,new T.MeshStandardMaterial({color:0x3b2416,roughness:.8,flatShading:true}));const c=vadd(vlerp(H0,H1,.5),[0,hh*.03,-hh*.06]);hair.position.set(c[0]-H0[0],c[1]-H0[1],c[2]-H0[2]);hair.scale.set(hh*.47,hh*.5,hh*.55);hair.rotation.x=-.42;hair.castShadow=true;h.bones[hi].add(hair);o.hair=hair}
