@@ -122,7 +122,7 @@ button{font-family:inherit;cursor:pointer}
   <div class="card" id="mainCard">
     <div>
       <h1>RINGSIDE<span>32</span></h1>
-      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V10</span></p>
+      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V11</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
       <button id="go" class="big">SNABB MATCH</button>
@@ -133,7 +133,7 @@ button{font-family:inherit;cursor:pointer}
     </div>
     <ul class="help">
       <li class="h">VÄNSTER TUMME</li>
-      <li><b>Inom ringen</b> styr du hela överkroppen: mot motståndaren = luta in/duck, bort = luta bakåt, upp/ner = slip åt sidan. Ju längre du drar, desto mer.</li><li><b>Fötterna sköter sig själva:</b> boxaren håller slagavstånd och cirklar bort från repen.</li><li><b>Snabbt ryck</b> med spaken = steg: mot motståndaren = steg in (slaget efter blir ett vinkelslag), bort = steg ut, upp/ner = sidosteg. <b>Yttre ringen</b> = gå själv.</li><li><b>Snabbt ryck</b> = väjning: <b>ner</b> duck, <b>upp</b> bakåt, <b>åt sidan</b> slip. Lyckad väjning = motståndaren tappar balansen och du får kontra.</li><li>Slip slår ut raka slag men du kan glida rakt in i en krok. Duck slår ut krokar men inte uppercuts.</li>
+      <li><b>ÖVERKROPP</b> (stora spaken): luta snabbt åt vilket håll som helst – mot motståndaren = luta in/duck, bort = bakåt, upp/ner = slip. Ju längre du drar, desto mer.</li><li><b>FÖTTER</b> (lilla spaken nere i hörnet): ←→ gå fram/bak, ↑↓ cirkla runt motståndaren.</li><li><b>Snabbt ryck</b> = väjning: <b>ner</b> duck, <b>upp</b> bakåt, <b>åt sidan</b> slip. Lyckad väjning = motståndaren tappar balansen och du får kontra.</li><li>Slip slår ut raka slag men du kan glida rakt in i en krok. Duck slår ut krokar men inte uppercuts.</li>
       <li class="h">HÖGER TUMME – SLAGET FÖLJER DITT SVEP</li>
       <li><b>Upp</b> jabb/rak · <b>sidan→upp</b> krok · <b>ner→upp</b> uppercut · <b>upp→sväng åt sidan</b> overhand</li><li>Handen följer bågen i ditt svep, och tempot följer hur snabbt du sveper. Streckade pilar i svepytan visar rekommenderade svep, och det du gör just nu lyser gult.</li><li>Raka svep växlar automatiskt mellan vänster och höger hand.</li>
       <li><b>Svepets fart = slagets kraft och tempo.</b> Långsamt svep = svagt, långsamt slag. Snabbt svep = hårt, snabbt slag. <b>Bredare krok</b> = tyngre men långsammare.</li>
@@ -169,7 +169,7 @@ const INVM=[1/3.5,1/5,1/9,1/10,1/1.8,1/1.4,1/1.8,1/1.4,1/3,1/2.5,1/3,1/2.5];
 const KB=[230,260,270,300,560,680,560,680,380,650,380,650];
 const ZT=[.5,.6,.6,.6,1,1,1,1,.7,.8,.7,.8];
 const COLR=[11,5,7,7,4,6,4,6,4,2,4,2];
-const PT={straight:{w:.06,s:.09,r:.15,d:4.5,c:4},hook:{w:.11,s:.12,r:.22,d:8.5,c:8},upper:{w:.12,s:.12,r:.24,d:9,c:8},over:{w:.13,s:.13,r:.26,d:9.5,c:9}};
+const PT={straight:{w:.06,s:.09,r:.15,d:4.5,c:4},hook:{w:.11,s:.12,r:.22,d:8.5,c:8},upper:{w:.15,s:.12,r:.24,d:9.5,c:8},over:{w:.13,s:.13,r:.26,d:9.5,c:9}};
 const NAMES={straight:['JABB','RAK HÖGER'],hook:['VÄNSTERKROK','HÖGERKROK'],upper:['VÄNSTER UPPER','HÖGER UPPER'],over:['VÄNSTER OVERHAND','OVERHAND HÖGER']};
 const DIFF={latt:{react:.2,aggr:.42,think:[.45,.9],dmg:.8,counter:.1,side:.4,parry:.04,learn:.1,feint:.04},normal:{react:.4,aggr:.58,think:[.3,.65],dmg:1,counter:.3,side:.8,parry:.12,learn:.25,feint:.12},svar:{react:.6,aggr:.76,think:[.18,.42],dmg:1.18,counter:.55,side:1.3,parry:.25,learn:.42,feint:.25}};
 // anatomiska zoner: d = skademultipel, s = chockmultipel
@@ -444,7 +444,10 @@ class Fighter{
     let spA=.12+.62*d-.5*s+.2*Math.abs(sl),upA=.2+.7*d-.6*s,nkA=.3+.25*d-.35*s,px=-11*d-5*s+2*Math.abs(sl)+Math.sin(t*2.2+this.seed)*1.4,py=46-17*d+bob-9*Math.abs(sl),tw=0;
     if(cl){spA+=.28;upA+=.2}
     if(pu){const k=pu.k;tw=(pu.hand?8:4)*(pu.hay?1.5:1)*k;
-      if(pu.type==='upper'){if(pu.phase==='wind')py-=(7+(pu.dip||0)*5)*ease(pu.s);else spA-=.12*Math.max(0,k)}}
+      if(pu.type==='upper'){const dp=11+(pu.dip||0)*5;
+        if(pu.phase==='wind'){const e=ease(pu.s);py-=dp*e;spA+=.24*e;upA+=.16*e;px-=2.5*e}
+        else if(pu.phase==='strike'){const e=ease(Math.min(1,pu.s*1.4));py+=lerp(-dp,6,e);spA+=lerp(.24,-.2,e);upA+=lerp(.16,-.14,e);px+=lerp(-2.5,3,e)}
+        else{const e=ease(pu.s);py+=6*(1-e);spA-=.2*(1-e);upA-=.14*(1-e);px+=3*(1-e)}}}
     spA+=tw*.012;upA+=tw*.022;px+=tw*.3;
     let hop=0;if(this.sideT>0){const k=1-this.sideT/.45;hop=Math.sin(k*Math.PI);py+=hop*5-2;spA+=.08*hop}
     if(this.stun>.15){upA+=Math.sin(t*5.3+this.seed)*this.stun*.12;nkA+=Math.sin(t*4.1)*this.stun*.35}
@@ -461,8 +464,8 @@ class Fighter{
     const ph=this.walkPh;
     const fF={x:14+Math.sin(ph)*5*mv-s*2+hop*3,y:2+Math.max(0,Math.cos(ph))*4*mv+hop*3},fN={x:-15-Math.sin(ph)*5*mv-s*2-hop*3,y:2+Math.max(0,-Math.cos(ph))*4*mv+hop*5};
     fF.y+=Math.max(0,bounce)*1.3;fN.y+=Math.max(0,-bounce)*1.3;
-    if(pu&&pu.k>0){if(pu.hand===0&&pu.type==='straight')fF.x+=6*pu.k;else if(pu.hand===1){fN.x+=4*pu.k;fN.y+=2.5*pu.k}else fF.y+=1.5*pu.k}
-    {const amt=pu?(pu.type==='straight'?(pu.hand?1:.35):pu.type==='upper'?.6:pu.type==='over'?1.15:1):0,tg=pu?amt*pu.k:0;this.twist=lerp(this.twist||0,tg,dt?Math.min(1,dt*25):1);if(pu)this.twS=(pu.hand?-1:1)*this.face*this.stance}
+    if(pu&&pu.k>0){if(pu.type==='upper'){if(pu.hand){fN.y+=4*pu.k;fN.x+=3*pu.k}else{fF.y+=3*pu.k}}else if(pu.hand===0&&pu.type==='straight')fF.x+=6*pu.k;else if(pu.hand===1){fN.x+=4*pu.k;fN.y+=2.5*pu.k}else fF.y+=1.5*pu.k}
+    {const amt=pu?(pu.type==='straight'?(pu.hand?1:.35):pu.type==='upper'?1.1:pu.type==='over'?1.15:1):0,tg=pu?amt*pu.k:0;this.twist=lerp(this.twist||0,tg,dt?Math.min(1,dt*25):1);if(pu)this.twS=(pu.hand?-1:1)*this.face*this.stance}
     const sF=this.face*this.stance,sN=-sF;
     let zhF=5*sF,zeF=9*sF,zhN=4*sN,zeN=9*sN;
     if(this.blocking){zhF=2.5*sF;zeF=7*sF;zhN=2.5*sN;zeN=7*sN}
@@ -502,10 +505,10 @@ class Fighter{
     if(pu.type==='straight')Wp={x:g.x-5-hb,y:g.y-1};
     else if(pu.type==='hook')Wp={x:nek.x+3-hb*.5,y:A.y+2};
     else if(pu.type==='over')Wp={x:nek.x-3-hb,y:nek.y+16};
-    else Wp={x:nek.x+4-hb*.4,y:nek.y-36-(pu.dip||0)*8};
+    else Wp={x:nek.x+1-hb*.4,y:nek.y-46-(pu.dip||0)*8};
     if(pu.phase==='wind')return lp(g,Wp,ease(pu.s));
     if(pu.phase==='strike'){const s=ease(Math.min(1,pu.s*1.6));if(pu.type==='straight')return lp(Wp,A,s);
-      const C=pu.type==='hook'?{x:(Wp.x+A.x)/2+4,y:Math.max(Wp.y,A.y)+4}:pu.type==='over'?{x:(Wp.x+A.x)/2+2,y:A.y+22}:{x:A.x-5,y:A.y-17};return bz(Wp,C,A,s)}
+      const C=pu.type==='hook'?{x:(Wp.x+A.x)/2+4,y:Math.max(Wp.y,A.y)+4}:pu.type==='over'?{x:(Wp.x+A.x)/2+2,y:A.y+22}:{x:A.x-8,y:A.y-26};return bz(Wp,C,A,s)}
     return lp(A,g,ease(pu.s));
   }
   throw(type,hand,body,hay,mods){
@@ -546,7 +549,7 @@ class Fighter{
     let dk=c.duck?1:(c.duckV||0),sw=c.sway&&!c.duck?1:(c.swayV||0),sl=c.slip||0;this.dodgeCD-=dt;
     if(this.dodge){const dg=this.dodge;dg.t-=dt;const k=dg.t>.12?1.15:.6;if(dg.type==='duck')dk=k;else if(dg.type==='sway')sw=k;else sl=dg.dir*Math.min(1,k);if(dg.t<=0)this.dodge=null}
     if(!act||cl){dk=sw=sl=0}
-    const rr=Math.min(1,dt*22);this.duckA+=(dk-this.duckA)*rr;this.swayA+=(sw-this.swayA)*rr;this.slipA+=(sl-this.slipA)*rr;
+    const rr=Math.min(1,dt*34);this.duckA+=(dk-this.duckA)*rr;this.swayA+=(sw-this.swayA)*rr;this.slipA+=(sl-this.slipA)*rr;
     const sp=78*(1-Math.min(.6,this.stun*.4))*(this.duckA>.5?.45:1)*(this.blocking?.6:1);
     this.root.vx+=((act?c.move*sp:0)-this.root.vx)*Math.min(1,dt*7);
     if(this.down)this.root.x=this.p[3].x;else this.root.x+=this.root.vx*dt;
@@ -1018,6 +1021,9 @@ function aiThink(f,dt){
       if(dodged&&Math.random()<D.counter)ai.q=[{type:Math.random()<.5?'hook':'upper',hand:Math.random()<.5?0:1,body:false,hay:false,delay:.25}];
     }}
   c.block=ai.blockT>0&&f.guardBreakT<=0;c.duck=ai.duckT>0;c.sway=ai.swayT>0;
+  ai.lt=(ai.lt||0)-dt;if(ai.lt<=0||(op&&op.phase==='wind'&&!ai.lw)){ai.lw=!!(op&&op.phase==='wind');ai.lt=rand(.22,.6);const a=Math.random()*6.2832,m=Math.random()<.3?0:rand(.3,.95)*Math.min(1,.5+D.react);ai.lv={d:Math.max(0,Math.cos(a))*m,s:Math.max(0,-Math.cos(a))*m*.8,sl:Math.sin(a)*m}}
+  if(!op)ai.lw=false;
+  if(!f.punch&&!c.block&&ai.lv){c.duckV=ai.lv.d;c.swayV=ai.lv.s;c.slip=ai.lv.sl}else{c.duckV=c.swayV=0;c.slip=0}
   if(f.stun>.95&&dist<62&&!game.clinch&&Math.random()<dt*(.6+D.react*1.5)){startClinch(f);return}
   if(game.diffKey==='svar'&&!f.punch&&Math.random()<dt*.04)switchStance(f);
   const ropeBehind=tw>0?f.root.x-RING_L:RING_R-f.root.x;
@@ -1104,7 +1110,7 @@ function step(dt){
 }
 
 // ---------- input ----------
-const keys={},LS={id:null,ox:0,oy:0,x:0,y:0},RS={id:null,ox:0,oy:0,x:0,y:0,pts:[],armed:true,t0:0,lastMove:0,moved:false,maxD:0,minY:0,st:0};
+const keys={},FS={id:null,ox:0,oy:0,x:0,y:0},footPad=()=>({x:innerWidth*.09+12,y:innerHeight*.8,r:RAD()*.75}),LS={id:null,ox:0,oy:0,x:0,y:0},RS={id:null,ox:0,oy:0,x:0,y:0,pts:[],armed:true,t0:0,lastMove:0,moved:false,maxD:0,minY:0,st:0};
 const ctl=$('#ctl'),kraftBtn=$('#kraft');
 const RAD=()=>clamp(innerHeight*.13,44,72);
 const playing=()=>game.state==='fight'||game.state==='train';
@@ -1174,15 +1180,13 @@ function playerCtrl(dt=1/120){
   if(LS.id!==null){const r=RAD();let dx=(LS.x-LS.ox)/r,dy=(LS.y-LS.oy)/r;const d=Math.hypot(dx,dy);
     // riktning mot motståndaren på skärmen
     const me=P3(f.p[3].x,f.p[3].y,0),op=P3(f.opp.p[3].x,f.opp.p[3].y,0),sdir=me&&op?(op[0]>=me[0]?1:-1):f.face;
-    input.sdir=sdir;
-    if(d>1.15){const nx=dx/d,ny=dy/d,k=Math.min(1,(d-1.15)/.35+.4);mx=nx*k;circ=clamp(-ny*1.2,-1,1)*k;dx=nx*.45;dy=ny*.45}
-    else{dx=clamp(dx,-1,1);dy=clamp(dy,-1,1)}
+    input.sdir=sdir;if(d>1){dx/=d;dy/=d}
     const lx=dx*sdir,dz=Math.max(0,Math.abs(lx)-.12)/.88*Math.sign(lx),dzy=Math.max(0,Math.abs(dy)-.12)/.88*Math.sign(dy);
     dV=Math.max(0,dz)*1.1;sV=Math.max(0,-dz)*1.1;slp=-dzy}
   if(keys.KeyA||keys.ArrowLeft)mx=-1;if(keys.KeyD||keys.ArrowRight)mx=1;if(keys.KeyS||keys.ArrowDown)dn=true;if(keys.KeyW||keys.ArrowUp)up=true;
-  // automatiskt fotarbete: håller slagavstånd och cirklar bort från repen; ryck med spaken = steg
-  input.autoOff=(input.autoOff||0)*Math.exp(-dt*1.1);
-  if(!mx&&!circ&&!keys.KeyA&&!keys.KeyD&&(game.state==='fight'||game.state==='train')&&!f.down&&f.rising<=0&&!inClinch(f)){
+  // fotspaken (nere i hörnet): ←→ gå, ↑↓ cirkla
+  if(FS.id!==null){const rf=RAD()*.75,dx=clamp((FS.x-FS.ox)/rf,-1,1),dy=clamp((FS.y-FS.oy)/rf,-1,1),sd=input.sdir||1;mx=Math.abs(dx)>.2?dx:0;circ=Math.abs(dy)>.25?clamp(-dy*1.15,-1,1):0}
+  if(false&&!mx&&!circ&&!keys.KeyA&&!keys.KeyD&&(game.state==='fight'||game.state==='train')&&!f.down&&f.rising<=0&&!inClinch(f)){
     const o=f.opp,dist=Math.abs(o.root.x-f.root.x),tw=Math.sign(o.root.x-f.root.x)||f.face,pref=(game.mode==='train'?52:60)+input.autoOff,e=dist-pref;
     mx=Math.abs(e)>3?clamp(e/20,-.9,.9)*tw:0;
     const behind=tw>0?f.root.x-RING_L:RING_R-f.root.x;
@@ -1193,11 +1197,13 @@ function playerCtrl(dt=1/120){
 }
 ctl.addEventListener('pointerdown',e=>{
   e.preventDefault();audioInit();mash();
-  if(e.clientX<innerWidth*.45){if(LS.id===null){const n=performance.now();LS.lean=false;LS.id=e.pointerId;LS.ox=LS.x=e.clientX;LS.oy=LS.y=e.clientY;LS.t0=n;LS.maxD=0;LS.mx=0;LS.my=0;if(LS.lean)vib(15)}}
+  const fp=footPad();if(e.clientX<innerWidth*.45&&FS.id===null&&Math.hypot(e.clientX-fp.x,e.clientY-fp.y)<fp.r*1.7){FS.id=e.pointerId;FS.ox=FS.x=fp.x;FS.oy=FS.y=fp.y;FS.x=e.clientX;FS.y=e.clientY}
+  else if(e.clientX<innerWidth*.45){if(LS.id===null){const n=performance.now();LS.lean=false;LS.id=e.pointerId;LS.ox=LS.x=e.clientX;LS.oy=LS.y=e.clientY;LS.t0=n;LS.maxD=0;LS.mx=0;LS.my=0;if(LS.lean)vib(15)}}
   else if(RS.id===null){const n=performance.now();RS.low=e.clientY>innerHeight*.66;Object.assign(RS,{id:e.pointerId,ox:e.clientX,oy:e.clientY,x:e.clientX,y:e.clientY,pts:[{x:0,y:0,t:n}],armed:true,t0:n,lastMove:n,moved:false,maxD:0,minY:0,st:n})}
   try{ctl.setPointerCapture(e.pointerId)}catch(_){}
 },{passive:false});
 ctl.addEventListener('pointermove',e=>{
+  if(e.pointerId===FS.id){FS.x=e.clientX;FS.y=e.clientY;return}
   if(e.pointerId===LS.id){LS.x=e.clientX;LS.y=e.clientY;const r=RAD(),dx=(LS.x-LS.ox)/r,dy=(LS.y-LS.oy)/r,d=Math.hypot(dx,dy);if(d>LS.maxD){LS.maxD=d;LS.mx=dx;LS.my=dy}return}
   if(e.pointerId!==RS.id)return;
   const n=performance.now();RS.x=e.clientX;RS.y=e.clientY;const r=RAD(),rx=(RS.x-RS.ox)/r,ry=(RS.y-RS.oy)/r,d=Math.hypot(rx,ry);
@@ -1211,7 +1217,7 @@ ctl.addEventListener('pointermove',e=>{
     if(feint||!RS.armed){RS.armed=true;RS.pts=[{x:rx,y:ry,t:n}];RS.maxD=0;RS.minY=0;RS.st=n}
   }
 });
-const pUp=e=>{if(e.pointerId===LS.id){LS.id=null;LS.lastUp=performance.now();LS.ux=LS.x;LS.uy=LS.y;const wasLean=LS.lean;LS.lean=false;if(!wasLean&&playing()&&performance.now()-LS.t0<220&&LS.maxD>.55){if(Math.abs(LS.my)>Math.abs(LS.mx))sidestep(F[0],LS.my<0?1:-1);else stepMove(F[0],LS.mx*(input.sdir||1)>0)}}else if(e.pointerId===RS.id){if(RS.armed&&RS.maxD>.7&&RS.minY<-.5)gesture();else if(!RS.moved&&performance.now()-RS.t0<220)playerThrow('straight',nextHand(),{});RS.id=null;RS.low=false;input.block=false}};
+const pUp=e=>{if(e.pointerId===FS.id){FS.id=null;return}if(e.pointerId===LS.id){LS.id=null;LS.lastUp=performance.now();LS.ux=LS.x;LS.uy=LS.y;const wasLean=LS.lean;LS.lean=false;if(false){}}else if(e.pointerId===RS.id){if(RS.armed&&RS.maxD>.7&&RS.minY<-.5)gesture();else if(!RS.moved&&performance.now()-RS.t0<220)playerThrow('straight',nextHand(),{});RS.id=null;RS.low=false;input.block=false}};
 ctl.addEventListener('pointerup',pUp);ctl.addEventListener('pointercancel',pUp);
 const btn=(el,fn)=>el.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();audioInit();mash();fn()});
 const chargeStart=()=>{if(game.state!=='menu'){input.charging=true;input.charge=0}};
@@ -1308,10 +1314,13 @@ function drawUI(rdt){
   const r=RAD();
   let ox,oy,kx,ky;
   if(LS.id!==null){ox=LS.ox;oy=LS.oy;const dx=LS.x-ox,dy=LS.y-oy,l=Math.hypot(dx,dy),m=Math.min(l,r);kx=ox+(l?dx/l*m:0);ky=oy+(l?dy/l*m:0);c.globalAlpha=.85}
-  else{ox=kx=iw*.16;oy=ky=ih*.66;c.globalAlpha=.3}
-  ringUI(c,ox,oy,r,'#7fc8ff');c.save();c.setLineDash([5,7]);ringUI(c,ox,oy,r*1.5,'rgba(255,255,255,.7)');c.restore();
-  if(LS.id!==null){const dd=Math.hypot(LS.x-ox,LS.y-oy)/r,m=Math.min(dd,1.5),a=Math.atan2(LS.y-oy,LS.x-ox);kx=ox+Math.cos(a)*m*r;ky=oy+Math.sin(a)*m*r;circ(c,kx,ky,r*.4,dd>1.15?'rgba(255,255,255,.55)':'rgba(127,200,255,.55)');txt(c,dd>1.15?'GÅR':'ÖVERKROPP',ox,oy-r*1.5-10,8,dd>1.15?'#fff':'#7fc8ff')}
-  else{circ(c,kx,ky,r*.4,'rgba(127,200,255,.35)');txt(c,'ÖVERKROPP',ox,oy+8,7,'#7fc8ff');txt(c,'RYCK = STEG · YTTRE RING = GÅ',ox,oy+r*1.5+16,7,'#fff')}
+  else{ox=kx=iw*.2;oy=ky=ih*.5;c.globalAlpha=.3}
+  ringUI(c,ox,oy,r,'#7fc8ff');
+  if(LS.id!==null){circ(c,kx,ky,r*.4,'rgba(127,200,255,.55)');txt(c,'ÖVERKROPP',ox,oy-r-10,8,'#7fc8ff')}
+  else{circ(c,kx,ky,r*.4,'rgba(127,200,255,.35)');txt(c,'ÖVERKROPP',ox,oy+r+16,7,'#7fc8ff')}
+  {const fp=footPad(),rf=fp.r;c.globalAlpha=FS.id!==null?.9:.45;ringUI(c,fp.x,fp.y,rf,'#ffffff');
+   let fx=fp.x,fy=fp.y;if(FS.id!==null){const dx=FS.x-fp.x,dy=FS.y-fp.y,l=Math.hypot(dx,dy),m=Math.min(l,rf);fx+=l?dx/l*m:0;fy+=l?dy/l*m:0}
+   circ(c,fx,fy,rf*.42,'rgba(255,255,255,.4)');txt(c,'FÖTTER',fp.x,fp.y-rf-8,6,'#fff');c.globalAlpha=1}
   if(RS.id!==null){
     drawGuides(c,RS.ox,RS.oy,r,previewKey(),.5);
     c.globalAlpha=.85;ringUI(c,RS.ox,RS.oy,r,input.block?'#9fd0ff':'#ffd84a');
