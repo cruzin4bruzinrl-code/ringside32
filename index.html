@@ -126,7 +126,7 @@ button{font-family:inherit;cursor:pointer}
   <div class="card" id="mainCard">
     <div>
       <h1>RINGSIDE<span>32</span></h1>
-      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V19</span></p>
+      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V20</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
       <button id="go" class="big">SNABB MATCH</button>
@@ -174,6 +174,13 @@ const INVM=[1/3.5,1/5,1/9,1/10,1/1.8,1/1.4,1/1.8,1/1.4,1/3,1/2.5,1/3,1/2.5];
 const KB=[430,480,500,540,600,720,600,720,460,700,460,700];
 const ZT=[.8,.85,.85,.85,1,1,1,1,.85,.9,.85,.9];
 const COLR=[11,5,7,7,4,6,4,6,4,2,4,2];
+// slagkoreografi: A = laddat läge (slutet av uppladdningen), B = träffögonblicket. rot = axelrotation (+ = främre axeln fram), hip = höftrotation,
+// px/py = bäckenets förflyttning, lean = framåtlutning, heel = bakre hälen lyfts, knee = främre knät böjs. Kedjan avfyras ben -> höft -> bål -> arm.
+const PK={straight:[{A:{rot:.08,hip:.04,px:-1,py:0,lean:0},B:{rot:.32,hip:.12,px:4,py:-1,lean:.07,knee:2}},{A:{rot:.18,hip:.12,px:-2.5,py:-1,lean:-.03},B:{rot:-.8,hip:-.55,px:7.5,py:-2,lean:.13,heel:4.5,knee:3}}],
+  hook:[{A:{rot:.32,hip:.26,px:-1.5,py:-2,lean:.03},B:{rot:-.6,hip:-.42,px:2,py:-3.5,lean:.06,knee:2}},{A:{rot:-.02,hip:.06,px:-1,py:-1.5,lean:0},B:{rot:-.95,hip:-.62,px:4,py:-3,lean:.08,heel:4.5}}],
+  upper:[{A:{rot:.28,hip:.22,px:-2.5,py:-11,lean:.22},B:{rot:-.38,hip:-.3,px:3,py:5,lean:-.16,knee:-2}},{A:{rot:.12,hip:.12,px:-3,py:-12,lean:.22},B:{rot:-.75,hip:-.52,px:3,py:6,lean:-.16,heel:5.5}}],
+  over:[{A:{rot:.2,hip:.1,px:-2,py:-2,lean:0},B:{rot:-.95,hip:-.6,px:5,py:-6,lean:.32,heel:5}},{A:{rot:.2,hip:.1,px:-2,py:-2,lean:0},B:{rot:-.95,hip:-.6,px:5,py:-6,lean:.32,heel:5}}]};
+const ROT0=.38,SW=10;
 // animationsstyrd kropp (som Fight Night): poserna styr, träffar ger fjädrande reaktioner ovanpå. Full ragdoll först vid knockout.
 const RK=[150,190,210,250,260,300,260,300,300,2000,300,2000],RZ=[.4,.5,.55,.6,.6,.6,.6,.6,.6,1,.6,1],RSI=[.55,.6,.6,.5,.7,.7,.7,.7,.4,0,.4,0],RM=[19,10,9,6,14,16,14,16,6,0,6,0];
 const PT={straight:{w:.06,s:.09,r:.15,d:4.5,c:4},hook:{w:.11,s:.12,r:.22,d:8.5,c:8},upper:{w:.15,s:.12,r:.24,d:9.5,c:8},over:{w:.13,s:.13,r:.26,d:9.5,c:9}};
@@ -259,7 +266,7 @@ const SFX={
 };
 
 // ---------- 3D-kamera (look-at, zoombar) ----------
-const RB=250,FOC=300,NEAR=14,YAW=.26,BASE_D=218,BASE_P=.12,BASE_Y=92;
+const RB=250,FOC=300,NEAR=14,YAW=-.3,BASE_D=228,BASE_P=.095,BASE_Y=94;
 const HC=GROUND+(-150*Math.cos(BASE_P)+300*Math.sin(BASE_P))*300/(300*Math.cos(BASE_P)+150*Math.sin(BASE_P));
 const AR={mx:0,mz:0,th:0,anim:null};
 const CAM={th:YAW,px:0,py:0,pz:0,R:[1,0,0],U:[0,1,0],F:[0,0,1],T:[0,0,0],dist:BASE_D};
@@ -458,17 +465,13 @@ class Fighter{
     const dd=Math.min(d,1.05),ss=Math.min(s,1.05);
     let spA=.12+.46*dd-.36*ss+.1*Math.abs(sl),upA=.2+.5*dd-.42*ss,nkA=.3+.18*dd-.25*ss,px=-7*dd-6*ss+1.5*Math.abs(sl)+Math.sin(t*2.2+this.seed)*1.1,py=44-12*dd+bob-4*Math.abs(sl),tw=0;
     if(cl){spA+=.28;upA+=.2}
-    if(pu){const k=pu.k;tw=(pu.hand?8:4)*(pu.hay?1.5:1)*k;
-      if(pu.type==='upper'){const dp=11+(pu.dip||0)*5;
-        if(pu.phase==='wind'){const e=ease(pu.s);py-=dp*e;spA+=.24*e;upA+=.16*e;px-=2.5*e}
-        else if(pu.phase==='strike'){const e=ease(Math.min(1,pu.s*1.4));py+=lerp(-dp,6,e);spA+=lerp(.24,-.2,e);upA+=lerp(.16,-.14,e);px+=lerp(-2.5,3,e)}
-        else{const e=ease(pu.s);py+=6*(1-e);spA-=.2*(1-e);upA-=.14*(1-e);px+=3*(1-e)}}}
-    spA+=tw*.012;upA+=tw*.022;px+=tw*.3;
-    if(pu&&pu.k>0){const k=pu.k;
-      if(pu.type==='straight'){px+=(pu.hand?4.5:2)*k;nkA+=.12*k}
-      else if(pu.type==='hook'){py-=3*k;spA+=.06*k}
-      else if(pu.type==='over'){spA+=.26*k;upA+=.22*k;py-=5*k;px+=3*k}
-      if(pu.body){py-=9*k;spA+=.16*k}}
+    // koreografi: varje led når sitt läge i tur och ordning (ben/höft först, sedan bål och sist armen)
+    let rot=ROT0+.06*Math.sin(t*1.7+this.seed),hipR=ROT0*.7,heel=0,knee=0;
+    if(pu){const K=PK[pu.type][pu.hand],A=K.A,B=K.B,pw=pu.hay?1.35:1,g=(o,k)=>(o[k]||0);
+      const ch=(k,lead)=>{if(pu.phase==='wind')return g(A,k)*ease(pu.s)*pw;if(pu.phase==='strike'){const e=ease(Math.min(1,pu.s*lead));return lerp(g(A,k)*pw,g(B,k)*pw,e)}return g(B,k)*pw*(1-ease(pu.s))};
+      rot+=ch('rot',1.6);hipR+=ch('hip',2.4);px+=ch('px',2);py+=ch('py',2.2)-(pu.type==='upper'?(pu.dip||0)*5*(pu.phase==='wind'?ease(pu.s):0):0);spA+=ch('lean',1.8);upA+=ch('lean',1.6)*.7;heel=ch('heel',2.2);knee=ch('knee',2.2);
+      if(pu.body){const k=Math.max(0,pu.k);py-=9*k;spA+=.16*k}}
+    if(this.blocking)rot=lerp(rot,.15,.6);
     let hop=0;if(this.sideT>0){const k=1-this.sideT/.45;hop=Math.sin(k*Math.PI);py+=hop*5-2;spA+=.08*hop}
     if(this.stun>.15){upA+=Math.sin(t*5.3+this.seed)*this.stun*.12;nkA+=Math.sin(t*4.1)*this.stun*.35}
     const pel={x:px,y:py},
@@ -484,8 +487,8 @@ class Fighter{
     const ph=this.walkPh;
     const fF={x:14+Math.sin(ph)*5*mv-s*2+hop*3,y:2+Math.max(0,Math.cos(ph))*4*mv+hop*3},fN={x:-15-Math.sin(ph)*5*mv-s*2-hop*3,y:2+Math.max(0,-Math.cos(ph))*4*mv+hop*5};
     fF.y+=Math.max(0,bounce)*1.3;fN.y+=Math.max(0,-bounce)*1.3;
-    if(pu&&pu.k>0){if(pu.type==='upper'){if(pu.hand){fN.y+=4*pu.k;fN.x+=3*pu.k}else{fF.y+=3*pu.k}}else if(pu.hand===0&&pu.type==='straight')fF.x+=6*pu.k;else if(pu.hand===1){fN.x+=4*pu.k;fN.y+=2.5*pu.k}else fF.y+=1.5*pu.k}
-    {const amt=pu?(pu.type==='straight'?(pu.hand?1:.35):pu.type==='upper'?1.1:pu.type==='over'?1.15:1):0,tg=pu?amt*pu.k:0;this.twist=lerp(this.twist||0,tg,dt?Math.min(1,dt*25):1);if(pu)this.twS=(pu.hand?-1:1)*this.face*this.stance}
+    fN.y+=Math.max(0,heel)*.8;fN.x+=Math.max(0,heel)*.6;fF.x-=knee*.4;if(pu&&pu.k>0&&pu.hand===0&&pu.type==='straight')fF.x+=5*pu.k;
+    this.rot=rot;this.hipR=hipR;
     const sF=this.face*this.stance,sN=-sF;
     let zhF=5*sF,zeF=9*sF,zhN=4*sN,zeN=9*sN;
     if(this.blocking){zhF=2.5*sF;zeF=7*sF;zhN=2.5*sN;zeN=7*sN}
@@ -502,7 +505,7 @@ class Fighter{
       }else{const k=pu.phase==='rec'?1-ease(pu.s):1;zh=lerp(gz,2.5*sd,k);ze=lerp(gez,8*sd,k)}
       if(pu.zdev&&pu.phase==='strike'){const k=Math.min(1,pu.s*1.6),fi=k*7,i0=Math.floor(fi),i1=Math.min(7,i0+1),dv=lerp(pu.zdev[i0],pu.zdev[i1],fi-i0);zh+=clamp(dv*(pu.hand?1:-1)*30,-14,14)*sd}
       if(pu.hand){zhN=zh;zeN=ze}else{zhF=zh;zeF=ze}
-      const h=this.punchHand(pu,pu.hand?gN:gF,nek);if(pu.hand)hN=h;else hF=h;
+      const sr0=Math.sin(rot),S1={x:nek.x+(pu.hand?-1:1)*sr0*SW,y:nek.y-3};const h=this.punchHand(pu,pu.hand?gN:gF,S1);if(pu.hand)hN=h;else hF=h;
     }
     const zt=this.zt,zs=this.zs;
     zt[0]=this.zKick+sl*19;zt[1]=this.zKick*.35+sl*12;zt[2]=this.zKick*.1+sl*5;zt[3]=0;
@@ -510,10 +513,12 @@ class Fighter{
     if(!dt)for(let i=0;i<12;i++)zs[i]=zt[i];
     else if(!this.down){const k=Math.min(1,dt*30);for(let i=0;i<12;i++)zs[i]+=(zt[i]-zs[i])*(i<4?1:k)}
     const eff=(L,dz)=>Math.sqrt(L*L-Math.min(dz*dz,L*L*.7));
-    const L1F=eff(UA,zs[4]-zs[1]-10*sF),L2F=eff(FA,zs[5]-zs[4]),L1N=eff(UA,zs[6]-zs[1]-10*sN),L2N=eff(FA,zs[7]-zs[6]);
+    const sr=Math.sin(rot),cr=Math.cos(rot),shF={x:nek.x+sr*SW,y:nek.y-3,z:zs[1]+cr*SW*sF},shN={x:nek.x-sr*SW,y:nek.y-3,z:zs[1]+cr*SW*sN};
+    this.shW=[shF,shN].map(q=>({x:this.root.x+q.x*this.face,y:GROUND-q.y,z:q.z}));
+    const L1F=eff(UA,zs[4]-shF.z),L2F=eff(FA,zs[5]-zs[4]),L1N=eff(UA,zs[6]-shN.z),L2N=eff(FA,zs[7]-zs[6]);
     this.armL=[L1F,L2F,L1N,L2N];
-    const aF=ik(nek.x,nek.y,hF.x,hF.y,L1F,L2F,-1),aN=ik(nek.x,nek.y,hN.x,hN.y,L1N,L2N,-1);
-    if(pu&&pu.type==='hook'){const A=pu.hand?aN:aF,k=pu.phase==='wind'?ease(pu.s):pu.phase==='strike'?1:1-ease(pu.s),ex=lerp(A.ex,nek.x+(A.hx-nek.x)*.42,k),ey=lerp(A.ey,nek.y-1.5,k);A.ex=ex;A.ey=ey}
+    const aF=ik(shF.x,shF.y,hF.x,hF.y,L1F,L2F,-1),aN=ik(shN.x,shN.y,hN.x,hN.y,L1N,L2N,-1);
+    if(pu&&pu.type==='hook'){const A=pu.hand?aN:aF,k=pu.phase==='wind'?ease(pu.s):pu.phase==='strike'?1:1-ease(pu.s),S0=pu.hand?shN:shF,ex=lerp(A.ex,S0.x+(A.hx-S0.x)*.42,k),ey=lerp(A.ey,S0.y+1.5,k);A.ex=ex;A.ey=ey}
     if(dt&&!this.down&&this.rising<=0&&this.sideT<=0){this.plant(0,fF,dt);this.plant(1,fN,dt)}else if(this.ft){this.ft[0].x=null;this.ft[1].x=null}
     const lF=ik(pel.x,pel.y,fF.x,fF.y,TH,SH,1),lN=ik(pel.x,pel.y,fN.x,fN.y,TH,SH,1);
     const L=[hed,nek,che,pel,{x:aF.ex,y:aF.ey},{x:aF.hx,y:aF.hy},{x:aN.ex,y:aN.ey},{x:aN.hx,y:aN.hy},{x:lF.ex,y:lF.ey},{x:lF.hx,y:lF.hy},{x:lN.ex,y:lN.ey},{x:lN.hx,y:lN.hy}];
@@ -569,7 +574,7 @@ class Fighter{
     const p=this.punch;if(!p)return;p.t+=dt;if(p.t<p.w&&this.opp&&this.opp.p)this.aimAt(p);
     if(p.feint&&p.t>=p.w*.85){this.punch=null;this.feintT=.6;return}
     if(p.t<p.w){p.phase='wind';p.s=p.t/p.w;p.k=-.3*p.s}
-    else if(p.t<p.w+p.st){if(p.phase==='wind'){SFX.whoosh(p.hay);if(!p.feint)this.root.vx+=this.face*(p.hand?38:22)*(p.type==='upper'?.4:1)}p.phase='strike';p.s=(p.t-p.w)/p.st;p.k=ease(Math.min(1,p.s*1.6))}
+    else if(p.t<p.w+p.st){if(p.phase==='wind'){SFX.whoosh(p.hay);if(!p.feint)this.root.vx+=this.face*(p.hand?22:14)*(p.type==='upper'?.4:1)}p.phase='strike';p.s=(p.t-p.w)/p.st;p.k=ease(Math.min(1,p.s*1.6))}
     else if(p.t<p.w+p.st+p.r){p.phase='rec';p.s=(p.t-p.w-p.st)/p.r;p.k=1-p.s}
     else{this.punch=null;if(!p.hit&&p.hay)this.stun=Math.max(this.stun,.35)}
   }
@@ -642,6 +647,7 @@ class Fighter{
     const R=this.rx||(this.rx=P.map(()=>({x:0,y:0,vx:0,vy:0})));
     if(!this.kinWas){for(let i=0;i<12;i++){const q=P[i],r=R[i],m=RM[i]*1.5;r.x=clamp(q.x-q.tx,-m,m);r.y=clamp(q.y-q.ty,-m,m);r.vx=r.vy=0;q.vk=q.vx;q.vkY=q.vy}}
     this.kinWas=true;
+    {const K=120*(1-.5*Math.min(1,this.stun)),D=2*Math.sqrt(K)*.35;this.hyV=(this.hyV||0)+(-(this.hy||0)*K-this.hyV*D)*dt;this.hy=clamp((this.hy||0)+this.hyV*dt,-.9,.9)}
     // externa impulser (träffar, block, pareringar) läggs på reaktionsfjädrarna och fortplantas ner genom kedjan
     const ex=[],ey=[];for(let i=0;i<12;i++){const q=P[i];ex[i]=(q.vx-(q.vk||0))*RSI[i];ey[i]=(q.vy-(q.vkY||0))*RSI[i]}
     ex[1]+=ex[0]*.35;ey[1]+=ey[0]*.3;ex[2]+=ex[0]*.15+ex[1]*.2;ey[2]+=ey[0]*.1;ex[3]+=ex[2]*.3;ey[3]+=ey[2]*.25;ex[1]+=ex[2]*.3;
@@ -718,8 +724,8 @@ function fighterMesh(f){
   // bål: höfter, magrutor, bröstmuskler, latsar (V-form), trapezius
   const TR=[[3,-7,9.6,10.4,11.4,0,0],[3,2,9.2,9.8,10.8,0,0],[3,5,8.6,9.2,10,0,0],['m',0,8.1,8.5,9.2,0,1,1],[2,-4,8.7,8.8,10.6,0,.8,1],[2,2,9.6,9.4,12.4,.6,0,0],[2,7,10,10,13.6,1,0,0],[1,-4,7.4,9.6,14.2,0,0],[1,.5,4.8,5.8,7.4,0,0]];
   const segC=[lk.trunk,lk.band,lk.skin,lk.skin,lk.skin,lk.skin,lk.skin,lk.skin],NS=12,tint=ripTint(bRips);
-  const TW=[0,0,.15,.3,.55,.8,1,1,1],th0=-(f.twS||1)*(f.twist||0)*.5,rotF=a=>vadd(vmul(fwW,Math.cos(a)),vmul(sdW,Math.sin(a))),rotS=a=>vsub(vmul(sdW,Math.cos(a)),vmul(fwW,Math.sin(a)));
-  const RV=TR.map((r,ri)=>{const fwR=rotF(th0*TW[ri]),sdR=rotS(th0*TW[ri]),C=r[0]==='m'?L2W(lerp(P[3].x,P[2].x,.5),lerp(P[3].y,P[2].y,.5),z[2]*.5):lp2(r[0],r[1],0,0),jg=r[7]===1?J1:r[7]===0||r[5]>0?J0:null,a=[];
+  const TW=[0,0,.15,.3,.55,.8,1,1,1],rotC=f.rot??ROT0,rotH=f.hipR??ROT0*.7,th0=-sF*rotC,angR=ri=>-sF*lerp(rotH,rotC,TW[ri]),rotF=a=>vadd(vmul(fwW,Math.cos(a)),vmul(sdW,Math.sin(a))),rotS=a=>vsub(vmul(sdW,Math.cos(a)),vmul(fwW,Math.sin(a)));
+  const RV=TR.map((r,ri)=>{const fwR=rotF(angR(ri)),sdR=rotS(angR(ri)),C=r[0]==='m'?L2W(lerp(P[3].x,P[2].x,.5),lerp(P[3].y,P[2].y,.5),z[2]*.5):lp2(r[0],r[1],0,0),jg=r[7]===1?J1:r[7]===0||r[5]>0?J0:null,a=[];
     for(let k=0;k<NS;k++){const ph=k/NS*6.2832,c=Math.cos(ph),s=Math.sin(ph),as=Math.abs(s);
       let fr=(c>0?r[2]:r[3])*c;if(r[5]&&c>0)fr+=r[5]*1.8*Math.pow(c,1.4)*Math.exp(-Math.pow((as-.45)/.24,2));if(r[6]&&c>0)fr-=r[6]*.9*Math.exp(-Math.pow(s/.14,2));
       let p=vadd(vadd(C,vmul(fwR,fr)),vmul(sdR,r[4]*s));if(jg&&c>.2)p=vadd(p,vmul(jg,c));
@@ -745,7 +751,7 @@ function fighterMesh(f){
   let ai=0;
   for(const[e,h,s]of[[4,5,sF],[6,7,-sF]]){
     PID=B0+2+ai;
-    const fwT=rotF(th0),sdT=rotS(th0),sh=vadd(lp2(1,-3,0,0),vmul(sdT,10*s)),el=W3(e),hd=W3(h),dir=vnorm(vsub(hd,el)),wr=vsub(hd,vmul(dir,2.5));
+    const fwT=rotF(th0),sdT=rotS(th0),sh=lp2(1,-3,Math.sin(rotC)*SW*s*sF,Math.cos(rotC)*SW*s),el=W3(e),hd=W3(h),dir=vnorm(vsub(hd,el)),wr=vsub(hd,vmul(dir,2.5));
     ell(vadd(sh,vmul(upW,.6)),vmul(fwT,5.8),vmul(upW,5.6),vmul(sdT,5.4),6,10,lk.skin);
     loft(sh,el,[[0,4.9],[.2,5.1,.12],[.4,5.2,.22],[.6,4.9,.12],[.8,4.3],[1,3.9]],10,lk.skin,dir);
     loft(el,wr,[[0,3.9],[.2,4.4,.12],[.4,4.3,.1],[.7,3.6],[1,3.1]],10,lk.skin,vsub(sh,el));
@@ -758,7 +764,7 @@ function fighterMesh(f){
   }
   let li=0;
   for(const[k,ft,s]of[[8,9,sF],[10,11,-sF]]){
-    const hip=lp2(3,-2,0,6*s),kn=W3(k),an=W3(ft),mid=vlerp(hip,kn,.5),bt=vlerp(kn,an,.58);
+    const hip=lp2(3,-2,Math.sin(rotH)*6*s*sF,Math.cos(rotH)*6*s),kn=W3(k),an=W3(ft),mid=vlerp(hip,kn,.5),bt=vlerp(kn,an,.58);
     PID=B0+6+li;
     loft(vadd(hip,vmul(upW,3)),mid,[[0,9.2],[.3,9.5],[.6,9.5],[1,8.8]],14,lk.trunk,null,(i,kk,dm)=>Math.abs(vdot(dm,sdW))>.8?lk.band:i===1?hx(lk.trunk,.85):lk.trunk);
     loft(vlerp(hip,kn,.42),kn,[[0,6.6],[.2,6.6,.12],[.4,6.4,.2],[.65,5.6,.1],[.85,4.9],[1,4.5]],10,lk.skin,fwW);
@@ -772,7 +778,7 @@ function fighterMesh(f){
   }
 }
 function headMesh(f){
-  const H0=f.p[0],fr=f.fr,lk=f.look,c=L2W(H0.x,H0.y,f.zs[0]),yaw=f.zKick*.05;
+  const H0=f.p[0],fr=f.fr,lk=f.look,c=L2W(H0.x,H0.y,f.zs[0]),yaw=f.zKick*.05+(f.hy||0);
   const fw=D2W(fr.fx,fr.fy,0),Uv=D2W(fr.ux,fr.uy,0),sd=D2W(0,0,1),cy=Math.cos(yaw),sy=Math.sin(yaw);
   // ansiktet vrids lite mot kameran (fightingspels-fusk) så att ansiktsdragen syns
   const tc=vnorm([-CAM.F[0],0,-CAM.F[2]]),fw0=vadd(vmul(fw,cy),vmul(sd,sy)),Fv=vnorm(vadd(fw0,vmul(tc,.55))),sd0=vsub(sd,vmul(Fv,vdot(sd,Fv))),Sv=vnorm(sd0);
@@ -981,7 +987,7 @@ function land(a,b,pu,body,g){
   if(crit)b.critT=.5;
   if(!body){
     b.hp-=dmg;b.stun+=dmg*.034*(counter?1.35:1)*Z.s;b.toneDip=Math.min(.85,b.toneDip+dmg*.04*Z.s);b.headDip=Math.min(.95,b.headDip+dmg*.08);
-    b.zKick=clamp(b.zKick-sd*dmg*(pu.type==='hook'?.9:.2),-12,12);
+    b.zKick=clamp(b.zKick-sd*dmg*(pu.type==='hook'?.9:.2),-12,12);b.hyV=(b.hyV||0)-sd*dmg*(pu.type==='hook'||pu.type==='over'?.55:.15)*(crit?1.5:1);
     b.swell[sd>0?1:0]=Math.min(3,b.swell[sd>0?1:0]+dmg*.05);
     if(dmg>=8&&(zone==='TINNING'||zone==='NASA')&&Math.random()<.3&&b.cut<5){b.cut++;b.cutSide=sd;pop(b.cut>=3?'DJUP CUT!':'CUT!','#ff4a4a',.18)}
     if(zone==='NASA'&&dmg>4)blood(P[0].x+b.face*9,P[0].y+2,b.zs[0],6+(dmg|0),-a.face*-1);
@@ -1140,7 +1146,7 @@ function aiThink(f,dt){
   if(f.counterT>0&&!f.punch&&dist<84&&!ai.q.length)ai.q=[{type:Math.random()<.5?'hook':'straight',hand:1,body:false,hay:Math.random()<.3,delay:0}];
   if(ai.t<=0){
     ai.t=rand(D.think[0],D.think[1]);
-    const low=f.hp<30||f.stam<20,ideal=low?78:62;
+    const low=f.hp<30||f.stam<20,ideal=low?80:66;
     if(dist>ideal+10)c.move=tw;else if(dist<ideal-14)c.move=-tw*.8;else c.move=Math.random()<.4?(Math.random()<.5?tw:-tw)*.6:0;
     c.circle=ropeBehind<70?(Math.random()<.5?1:-1)*rand(.6,1):Math.random()<.3?(Math.random()<.5?1:-1)*rand(.4,.9):0;
     if(dist<80&&!f.punch&&!ai.q.length&&f.stam>14&&Math.random()<D.aggr*(low?.6:1)*(o.stun>.5||o.guardBreakT>0?1.5:1)){
@@ -1175,8 +1181,8 @@ function hitTest(a,b){
 }
 function separate(){
   const[A,B]=F;if(A.down||B.down||game.clinch)return;const L=A.root.x<=B.root.x?A:B,R=L===A?B:A,d=R.root.x-L.root.x;
-  if(d<42){const p=(42-d)/2;L.root.x-=p;R.root.x+=p}
-  for(const[i,j,m]of[[0,0,23],[2,2,22],[0,2,20],[2,0,20]]){const a=L.p[i],b=R.p[j],dx=b.x-a.x,dy=b.y-a.y,dz=R.zs[j]-L.zs[i],dd=Math.hypot(dx,dy,dz);if(dd<m&&dx<m){const q=Math.min(3,(m-dd)*.5);L.root.x-=q;R.root.x+=q}}
+  if(d<50){const p=(50-d)/2;L.root.x-=p;R.root.x+=p}
+  for(const[i,j,m]of[[0,0,30],[2,2,27],[0,2,24],[2,0,24]]){const a=L.p[i],b=R.p[j],dx=b.x-a.x,dy=b.y-a.y,dz=R.zs[j]-L.zs[i],dd=Math.hypot(dx,dy,dz);if(dd<m&&dx<m){const q=Math.min(4,(m-dd)*.6);L.root.x-=q;R.root.x+=q}}
 }
 function toCorner(f){const tx=f.idx===0?RING_L+80:RING_R-80;f.ctrl.move=clamp((tx-f.root.x)/25,-1,1)}
 
@@ -1744,11 +1750,11 @@ function fighter3(o){
   const flexArm=h=>ph===h?act:0,pecFlex=1+.45*(ty==='hook'||ty==='over'||(ty==='straight'&&ph===1)?act:0),quadFlex=.2+.25*f.duckA+(ty==='upper'?.35*Math.abs(pu.k):0);
   // ---- bål med bröstmuskler, magrutor, latsar, V-form
   const TR=[[3,-7,9.6,10.4,11.4,0,0],[3,2,9.2,9.8,10.8,0,0],[3,5,8.6,9.2,10,0,0],['m',0,8.1,8.5,9.2,0,1,1],[2,-4,8.7,8.8,10.6,0,.8,1],[2,2,9.6,9.4,12.4,.6,0,0],[2,7,10,10,13.6,1,0,0],[1,-4,7.4,9.6,14.2,0,0],[1,.5,4.8,5.8,7.4,0,0]];
-  const TW=[0,0,.15,.3,.55,.8,1,1,1],th0=-(f.twS||1)*(f.twist||0)*.5,J0=D2W(f.jig[0].dx,f.jig[0].dy,0),J1=D2W(f.jig[1].dx,f.jig[1].dy,0);
+  const TW=[0,0,.15,.3,.55,.8,1,1,1],rotC=f.rot??ROT0,rotH=f.hipR??ROT0*.7,th0=-sF*rotC,J0=D2W(f.jig[0].dx,f.jig[0].dy,0),J1=D2W(f.jig[1].dx,f.jig[1].dy,0);
   const Cd=TR.map(r=>r[0]==='m'?L2W(lerp(P[3].x,P[2].x,.5),lerp(P[3].y,P[2].y,.5),z[2]*.5):lp2(r[0],r[1],0,0));
   const G=o.torso,nR=G.nR,nS=G.nS;
   for(let r=0;r<nR;r++){const ri=r/(nR-1)*(TR.length-1),i0=Math.min(TR.length-2,Math.floor(ri)),t=ri-i0,A=TR[i0],B=TR[i0+1],L=k=>lerp(A[k],B[k],t);
-    const C=vlerp(Cd[i0],Cd[i0+1],t),ang=th0*lerp(TW[i0],TW[i0+1],t),fwR=vadd(vmul(fwW,Math.cos(ang)),vmul(sdW,Math.sin(ang))),sdR=vsub(vmul(sdW,Math.cos(ang)),vmul(fwW,Math.sin(ang)));
+    const C=vlerp(Cd[i0],Cd[i0+1],t),ang=-sF*lerp(rotH,rotC,lerp(TW[i0],TW[i0+1],t)),fwR=vadd(vmul(fwW,Math.cos(ang)),vmul(sdW,Math.sin(ang))),sdR=vsub(vmul(sdW,Math.cos(ang)),vmul(fwW,Math.sin(ang)));
     const rf=L(2),rb=L(3),rs=L(4)*(1+.05*act),pec=L(5)*pecFlex,ab=L(6),jw=(A[7]===1?1-t:0)+(B[7]===1?t:0),jw0=(A[5]>0||A[7]===0?1-t:0)+(B[5]>0||B[7]===0?t:0),col=i0<1?TRK:i0<2?BND:SK;G.ctr[r]=C;
     for(let s=0;s<nS;s++){const phi=s/nS*6.2832-Math.PI,c=Math.cos(phi),sn=Math.sin(phi),as=Math.abs(sn);
       let fr=(c>0?rf:rb)*c;if(pec&&c>0)fr+=pec*1.8*Math.pow(c,1.4)*Math.exp(-(((as-.45)/.24)**2));if(ab&&c>0)fr-=ab*.7*Math.exp(-((sn/.14)**2));
@@ -1761,7 +1767,7 @@ function fighter3(o){
   // ---- armar: deltoid, biceps (spänns när armen böjs), triceps (spänns när armen sträcks), underarm, handske med tumme
   const fwT=vadd(vmul(fwW,Math.cos(th0)),vmul(sdW,Math.sin(th0))),sdT=vsub(vmul(sdW,Math.cos(th0)),vmul(fwW,Math.sin(th0)));
   [[4,5,sF,0],[6,7,-sF,1]].forEach(([e,h,s,i])=>{
-    const sh=vadd(lp2(1,-3,0,0),vmul(sdT,10*s)),el=W3(e),hd=W3(h),dir=vnorm(vsub(hd,el)),wr=vsub(hd,vmul(dir,2.5)),bend=clamp(1-vdist(sh,hd)/(UA+FA),0,1),fx=flexArm(i),dsc=1+.14*fx;
+    const sh=lp2(1,-3,Math.sin(rotC)*SW*s*sF,Math.cos(rotC)*SW*s),el=W3(e),hd=W3(h),dir=vnorm(vsub(hd,el)),wr=vsub(hd,vmul(dir,2.5)),bend=clamp(1-vdist(sh,hd)/(UA+FA),0,1),fx=flexArm(i),dsc=1+.14*fx;
     ell3(o.delt[i],vadd(sh,vmul(upW,.6)),vmul(fwT,5.9*dsc),vmul(upW,5.7*dsc),vmul(sdT,5.5*dsc),null,()=>SK);
     loft3(o.uarm[i],sh,el,[[0,4.9],[.22,5.1,.1,.1],[.45,5.2,.2+bend*.45,.1+fx*.3],[.7,4.7,.1,.12+fx*.2],[.88,4.1],[1,3.9]],dir,()=>SK);
     loft3(o.farm[i],el,wr,[[0,4],[.18,4.5,.14+fx*.1,.08],[.4,4.3,.1],[.75,3.5],[1,3.1]],vsub(sh,el),()=>SK);
@@ -1772,7 +1778,7 @@ function fighter3(o){
   // ---- ben: shorts i satin, lår (quadriceps), vader (spänns på tå), kängor med snören och sula
   const lum=(()=>{const n=parseInt(lk.boot.slice(1),16);return((n>>16)+(n>>8&255)+(n&255))/3})(),LACE=lin(lum>128?'#8a8a90':'#dcdce0'),SOLE=lin(lum>128?'#3a3a40':'#ececee'),BT=lin(lk.boot),TD=lin(hx(lk.trunk,.82));
   [[8,9,sF,0],[10,11,-sF,1]].forEach(([k,ft,s,i])=>{
-    const hip=lp2(3,-2,0,6*s),kn=W3(k),an=W3(ft),mid=vlerp(hip,kn,.5),bt=vlerp(kn,an,.58),toes=(f.p[ft].y<GROUND-COLR[ft]-1.2)?.35:0;
+    const hip=lp2(3,-2,Math.sin(rotH)*6*s*sF,Math.cos(rotH)*6*s),kn=W3(k),an=W3(ft),mid=vlerp(hip,kn,.5),bt=vlerp(kn,an,.58),toes=(f.p[ft].y<GROUND-COLR[ft]-1.2)?.35:0;
     loft3(o.shorts[i],vadd(hip,vmul(upW,3)),mid,[[0,9.3],[.3,9.6],[.62,9.6],[.86,9.2],[1,8.9]],null,(r,ss,d)=>Math.abs(vdot(d,sdW))>.82?BND:r>=6?TD:TRK);
     loft3(o.thigh[i],vlerp(hip,kn,.4),kn,[[0,6.7],[.2,6.7,.12],[.42,6.5,quadFlex],[.66,5.7,.12],[.86,4.9],[1,4.5]],fwW,()=>SK);
     loft3(o.shin[i],kn,bt,[[0,4.4],[.16,4.8,.25],[.3,5.1,.38+toes],[.5,4.7,.2],[.75,4.1],[1,3.9]],vmul(fwW,-1),()=>SK);
@@ -1780,7 +1786,7 @@ function fighter3(o){
     loft3(o.foot[i],L2W(P[ft].x-f.face*3,P[ft].y-.4,z[ft]),L2W(P[ft].x+f.face*8.6,P[ft].y+.3,z[ft]),[[0,3.3],[.3,3.7],[.8,3.4],[1,2.4]],null,(r,ss,d)=>d[1]<-.35?SOLE:BT)});
 }
 function head3(o,f){
-  const H0=f.p[0],fr=f.fr,lk=f.look,c=L2W(H0.x,H0.y,f.zs[0]),yaw=f.zKick*.05;
+  const H0=f.p[0],fr=f.fr,lk=f.look,c=L2W(H0.x,H0.y,f.zs[0]),yaw=f.zKick*.05+(f.hy||0);
   const fw=D2W(fr.fx,fr.fy,0),Uv=D2W(fr.ux,fr.uy,0),sd=D2W(0,0,1),cy=Math.cos(yaw),sy=Math.sin(yaw);
   const tc=vnorm([-CAM.F[0],0,-CAM.F[2]]),fw0=vadd(vmul(fw,cy),vmul(sd,sy)),Fv=vnorm(vadd(fw0,vmul(tc,.5))),Sv=vnorm(vsub(sd,vmul(Fv,vdot(sd,Fv))));
   const RF=11.2,RU=13,RS=10.4,B=f.blob,hRips=f.rip.filter(r=>r.part==='head');
