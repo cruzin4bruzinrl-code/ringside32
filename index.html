@@ -122,7 +122,7 @@ button{font-family:inherit;cursor:pointer}
   <div class="card" id="mainCard">
     <div>
       <h1>RINGSIDE<span>32</span></h1>
-      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V9</span></p>
+      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V10</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
       <button id="go" class="big">SNABB MATCH</button>
@@ -133,7 +133,7 @@ button{font-family:inherit;cursor:pointer}
     </div>
     <ul class="help">
       <li class="h">VÄNSTER TUMME</li>
-      <li><b>Inom ringen</b> styr du hela överkroppen: mot motståndaren = luta in/duck, bort = luta bakåt, upp/ner = slip åt sidan. Ju längre du drar, desto mer.</li><li><b>Dra ut till yttre ringen</b> = gå: framåt/bakåt och upp/ner = cirkla runt motståndaren.</li><li><b>Snabbt ryck</b> = väjning: <b>ner</b> duck, <b>upp</b> bakåt, <b>åt sidan</b> slip. Lyckad väjning = motståndaren tappar balansen och du får kontra.</li><li>Slip slår ut raka slag men du kan glida rakt in i en krok. Duck slår ut krokar men inte uppercuts.</li>
+      <li><b>Inom ringen</b> styr du hela överkroppen: mot motståndaren = luta in/duck, bort = luta bakåt, upp/ner = slip åt sidan. Ju längre du drar, desto mer.</li><li><b>Fötterna sköter sig själva:</b> boxaren håller slagavstånd och cirklar bort från repen.</li><li><b>Snabbt ryck</b> med spaken = steg: mot motståndaren = steg in (slaget efter blir ett vinkelslag), bort = steg ut, upp/ner = sidosteg. <b>Yttre ringen</b> = gå själv.</li><li><b>Snabbt ryck</b> = väjning: <b>ner</b> duck, <b>upp</b> bakåt, <b>åt sidan</b> slip. Lyckad väjning = motståndaren tappar balansen och du får kontra.</li><li>Slip slår ut raka slag men du kan glida rakt in i en krok. Duck slår ut krokar men inte uppercuts.</li>
       <li class="h">HÖGER TUMME – SLAGET FÖLJER DITT SVEP</li>
       <li><b>Upp</b> jabb/rak · <b>sidan→upp</b> krok · <b>ner→upp</b> uppercut · <b>upp→sväng åt sidan</b> overhand</li><li>Handen följer bågen i ditt svep, och tempot följer hur snabbt du sveper. Streckade pilar i svepytan visar rekommenderade svep, och det du gör just nu lyser gult.</li><li>Raka svep växlar automatiskt mellan vänster och höger hand.</li>
       <li><b>Svepets fart = slagets kraft och tempo.</b> Långsamt svep = svagt, långsamt slag. Snabbt svep = hårt, snabbt slag. <b>Bredare krok</b> = tyngre men långsammare.</li>
@@ -1062,8 +1062,8 @@ function step(dt){
   bounds();
   if(st==='menu')game.orbit=(game.orbit+dt*.14)%6.2832;
   {const tgt=AR.th+YAW+(st==='menu'?game.orbit:Math.sin(game.t*.35)*.05);let d=tgt-CAM.th;d=Math.atan2(Math.sin(d),Math.cos(d));CAM.th+=d*Math.min(1,dt*(st==='menu'?6:2.2))}
-  if(st==='fight'){playerCtrl();aiThink(B,dt)}
-  else if(st==='train')playerCtrl();
+  if(st==='fight'){playerCtrl(dt);aiThink(B,dt)}
+  else if(st==='train')playerCtrl(dt);
   else{
     for(const f of F){f.ctrl.block=f.ctrl.duck=f.ctrl.sway=false;f.ctrl.move=0}
     if(st==='menu')for(const f of F){if(!f.punch&&Math.random()<dt*1.1)f.throw(['straight','straight','hook','upper'][Math.random()*4|0],Math.random()<.5?0:1,false,false);if(Math.random()<dt*.3)f.ctrl.duck=true}
@@ -1154,6 +1154,7 @@ function gesture(){
   playerThrow(type,hand,swipeMods(type));
 }
 // väjning: lyckas den -> slaget missar, motståndaren tappar balansen, du får kontringsfönster
+function stepMove(f,inward){if(f.down||f.rising>0||inClinch(f)||f.stam<3)return;f.root.vx+=f.face*(inward?200:-200);input.autoOff=inward?-20:26;f.stam-=2;f.angleT=inward?.4:0;SFX.step();pop(inward?'STEG IN':'STEG UT','#ffffff',.86)}
 function startDodge(f,type,dir=0){if(f.dodgeCD>0||f.down||f.rising>0||inClinch(f)||f.stam<4)return false;if(f.punch&&f.punch.phase!=='rec')return false;f.dodge={type,dir,t:.42};f.dodgeCD=.5;f.stam-=3;SFX.whoosh(false);return true}
 function evadeCheck(a,b,pu,g){
   if(pu.ev||pu.body||pu.phase!=='strike'||pu.s<.45)return false;
@@ -1167,17 +1168,26 @@ function evadeCheck(a,b,pu,g){
   if(miss){pu.hit=true;b.counterT=.75;if(t!=='straight'||pu.hay){a.stun=Math.max(a.stun,.32);a.root.vx+=a.face*70}a.stam=Math.max(0,a.stam-2);SFX.whoosh(true);game.hitstop=Math.max(game.hitstop,.05);game.hype+=.4}
   return miss;
 }
-function playerCtrl(){
+function playerCtrl(dt=1/120){
   const f=F[0],c=f.ctrl;let mx=0,dn=false,up=false;
   let circ=0,slp=0,dV=0,sV=0;
   if(LS.id!==null){const r=RAD();let dx=(LS.x-LS.ox)/r,dy=(LS.y-LS.oy)/r;const d=Math.hypot(dx,dy);
     // riktning mot motståndaren på skärmen
     const me=P3(f.p[3].x,f.p[3].y,0),op=P3(f.opp.p[3].x,f.opp.p[3].y,0),sdir=me&&op?(op[0]>=me[0]?1:-1):f.face;
+    input.sdir=sdir;
     if(d>1.15){const nx=dx/d,ny=dy/d,k=Math.min(1,(d-1.15)/.35+.4);mx=nx*k;circ=clamp(-ny*1.2,-1,1)*k;dx=nx*.45;dy=ny*.45}
     else{dx=clamp(dx,-1,1);dy=clamp(dy,-1,1)}
     const lx=dx*sdir,dz=Math.max(0,Math.abs(lx)-.12)/.88*Math.sign(lx),dzy=Math.max(0,Math.abs(dy)-.12)/.88*Math.sign(dy);
     dV=Math.max(0,dz)*1.1;sV=Math.max(0,-dz)*1.1;slp=-dzy}
   if(keys.KeyA||keys.ArrowLeft)mx=-1;if(keys.KeyD||keys.ArrowRight)mx=1;if(keys.KeyS||keys.ArrowDown)dn=true;if(keys.KeyW||keys.ArrowUp)up=true;
+  // automatiskt fotarbete: håller slagavstånd och cirklar bort från repen; ryck med spaken = steg
+  input.autoOff=(input.autoOff||0)*Math.exp(-dt*1.1);
+  if(!mx&&!circ&&!keys.KeyA&&!keys.KeyD&&(game.state==='fight'||game.state==='train')&&!f.down&&f.rising<=0&&!inClinch(f)){
+    const o=f.opp,dist=Math.abs(o.root.x-f.root.x),tw=Math.sign(o.root.x-f.root.x)||f.face,pref=(game.mode==='train'?52:60)+input.autoOff,e=dist-pref;
+    mx=Math.abs(e)>3?clamp(e/20,-.9,.9)*tw:0;
+    const behind=tw>0?f.root.x-RING_L:RING_R-f.root.x;
+    if(game.mode==='match'&&behind<75){if(!input.autoCirc)input.autoCirc=Math.random()<.5?1:-1;circ=input.autoCirc*clamp((75-behind)/40,.35,1)}else if(behind>110)input.autoCirc=0;
+  }
   if(game.mode==='match'&&f.stun>.7)mx=clamp(mx+Math.sin(game.t*2.3)*.6*(f.stun-.6),-1,1);
   c.move=mx;c.duck=dn;c.sway=up;c.duckV=dV;c.swayV=sV;c.slip=slp||(keys.KeyZ?-1:keys.KeyX?1:0);c.circle=circ;c.block=input.block||!!keys.KeyL;input.duck=dn||dV>.55||RS.low;
 }
@@ -1201,7 +1211,7 @@ ctl.addEventListener('pointermove',e=>{
     if(feint||!RS.armed){RS.armed=true;RS.pts=[{x:rx,y:ry,t:n}];RS.maxD=0;RS.minY=0;RS.st=n}
   }
 });
-const pUp=e=>{if(e.pointerId===LS.id){LS.id=null;LS.lastUp=performance.now();LS.ux=LS.x;LS.uy=LS.y;const wasLean=LS.lean;LS.lean=false;if(!wasLean&&playing()&&performance.now()-LS.t0<240&&LS.maxD>.5){if(Math.abs(LS.my)>Math.abs(LS.mx))startDodge(F[0],LS.my>0?'duck':'sway');else startDodge(F[0],'slip',LS.mx>0?1:-1)}}else if(e.pointerId===RS.id){if(RS.armed&&RS.maxD>.7&&RS.minY<-.5)gesture();else if(!RS.moved&&performance.now()-RS.t0<220)playerThrow('straight',nextHand(),{});RS.id=null;RS.low=false;input.block=false}};
+const pUp=e=>{if(e.pointerId===LS.id){LS.id=null;LS.lastUp=performance.now();LS.ux=LS.x;LS.uy=LS.y;const wasLean=LS.lean;LS.lean=false;if(!wasLean&&playing()&&performance.now()-LS.t0<220&&LS.maxD>.55){if(Math.abs(LS.my)>Math.abs(LS.mx))sidestep(F[0],LS.my<0?1:-1);else stepMove(F[0],LS.mx*(input.sdir||1)>0)}}else if(e.pointerId===RS.id){if(RS.armed&&RS.maxD>.7&&RS.minY<-.5)gesture();else if(!RS.moved&&performance.now()-RS.t0<220)playerThrow('straight',nextHand(),{});RS.id=null;RS.low=false;input.block=false}};
 ctl.addEventListener('pointerup',pUp);ctl.addEventListener('pointercancel',pUp);
 const btn=(el,fn)=>el.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();audioInit();mash();fn()});
 const chargeStart=()=>{if(game.state!=='menu'){input.charging=true;input.charge=0}};
@@ -1301,7 +1311,7 @@ function drawUI(rdt){
   else{ox=kx=iw*.16;oy=ky=ih*.66;c.globalAlpha=.3}
   ringUI(c,ox,oy,r,'#7fc8ff');c.save();c.setLineDash([5,7]);ringUI(c,ox,oy,r*1.5,'rgba(255,255,255,.7)');c.restore();
   if(LS.id!==null){const dd=Math.hypot(LS.x-ox,LS.y-oy)/r,m=Math.min(dd,1.5),a=Math.atan2(LS.y-oy,LS.x-ox);kx=ox+Math.cos(a)*m*r;ky=oy+Math.sin(a)*m*r;circ(c,kx,ky,r*.4,dd>1.15?'rgba(255,255,255,.55)':'rgba(127,200,255,.55)');txt(c,dd>1.15?'GÅR':'ÖVERKROPP',ox,oy-r*1.5-10,8,dd>1.15?'#fff':'#7fc8ff')}
-  else{circ(c,kx,ky,r*.4,'rgba(127,200,255,.35)');txt(c,'ÖVERKROPP',ox,oy+8,7,'#7fc8ff');txt(c,'YTTRE RING = GÅ',ox,oy+r*1.5+16,7,'#fff')}
+  else{circ(c,kx,ky,r*.4,'rgba(127,200,255,.35)');txt(c,'ÖVERKROPP',ox,oy+8,7,'#7fc8ff');txt(c,'RYCK = STEG · YTTRE RING = GÅ',ox,oy+r*1.5+16,7,'#fff')}
   if(RS.id!==null){
     drawGuides(c,RS.ox,RS.oy,r,previewKey(),.5);
     c.globalAlpha=.85;ringUI(c,RS.ox,RS.oy,r,input.block?'#9fd0ff':'#ffd84a');
