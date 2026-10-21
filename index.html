@@ -126,7 +126,7 @@ button{font-family:inherit;cursor:pointer}
   <div class="card" id="mainCard">
     <div>
       <h1>RINGSIDE<span>32</span></h1>
-      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V18</span></p>
+      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V19</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
       <button id="go" class="big">SNABB MATCH</button>
@@ -922,7 +922,7 @@ function coverOf(a,b,pu){if(!b.blocking)return 0;let cov=0;if(!pu.body&&b.duckA<
 function estDmg(a,b,pu,zone){let d=pu.dmg*(.45+.55*a.stam/100)*(a.isAI?game.diff.dmg:1);d*=1+clamp(a.root.vx*a.face/78,-1,1)*.25;if(b.punch&&b.punch.phase!=='rec')d*=1.4;if(a.angleT>0)d*=1.25;if(a.counterT>0)d*=1.5;return d*ZM[zone].d}
 // dödligt slag: bara när ingen av er väjer eller skyddar sig (rak slagväxling), rätt zon och tillräcklig kraft
 function isLethal(a,b,pu,zone,d){
-  if(b.blocking||b.duckA>.3||b.swayA>.3||Math.abs(b.slipA)>.3||b.sideT>0||a.swayA>.3||Math.abs(a.slipA)>.3||a.sideT>0||(!pu.body&&a.duckA>.3))return false;
+  if(b.blocking||b.dodge||b.duckA>.42||b.swayA>.42||Math.abs(b.slipA)>.38||b.sideT>0||a.dodge||a.swayA>.42||Math.abs(a.slipA)>.38||a.sideT>0||(!pu.body&&a.duckA>.42))return false;
   if(pu.body)return zone==='LEVER'&&d>=8&&(b.body-d<55||b.hp-d*.3<=0);
   if(zone!=='KAKE'&&zone!=='TINNING')return b.hp-d<=0;
   return b.hp-d<=0||b.stun+d*.034*ZM[zone].s>1.6||(d>=10&&b.hp<65);
@@ -1160,10 +1160,13 @@ function aiThink(f,dt){
   if(dist>110)ai.q.length=0;
 }
 function segDist(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay,t=clamp(((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy||1),0,1);return Math.hypot(px-ax-dx*t,py-ay-dy*t)}
-function inWin(pu){return pu&&!pu.hit&&!pu.feint&&(pu.phase==='strike'||(pu.phase==='rec'&&pu.s<.3))}
+function inWin(pu){return pu&&!pu.hit&&!pu.feint&&(pu.phase==='strike'||(pu.phase==='rec'&&(pu.s<.3||pu.cine)))}
 function hitTest(a,b){
   const pu=a.punch;if(!inWin(pu)||b.down||b.rising>0||game.clinch)return;
-  const g=a.p[pu.hand?7:5];if(evadeCheck(a,b,pu,g))return;let hit=false;
+  const g=a.p[pu.hand?7:5];
+  // dödligt slag är redan bestämt: det ska alltid gå in (annars försvinner röntgen)
+  if(pu.cine&&game.cine&&!game.cine.hit){const dd=pu.body?segDist(g.x,g.y,b.p[1].x,b.p[1].y,b.p[3].x,b.p[3].y)-18:Math.hypot(g.x-b.p[0].x,g.y-b.p[0].y)-19;if(dd<10||pu.phase==='rec'){b.blocking=false;land(a,b,pu,pu.body,g)}return}
+  if(evadeCheck(a,b,pu,g))return;let hit=false;
   const gz=a.zs[pu.hand?7:5];
   if(pu.body)hit=segDist(g.x,g.y,b.p[1].x,b.p[1].y,b.p[3].x,b.p[3].y)<18&&Math.abs(gz-b.zs[2])<17;else hit=Math.hypot(g.x-b.p[0].x,g.y-b.p[0].y,gz-b.zs[0])<19;
   if(!hit)return;
@@ -1200,6 +1203,7 @@ function step(dt){
   for(const f of(tr?[A]:F)){const cc=f.ctrl.circle||0;f.circV=0;if(!cc||f.down||f.rising>0||inClinch(f)||AR.anim||!(st==='fight'||st==='train'))continue;
     const o=f.opp,k=o.root.x-320,c0=Math.cos(AR.th),s0=Math.sin(AR.th),px=AR.mx+c0*k,pz=AR.mz+s0*k,dist=Math.max(30,Math.abs(f.root.x-o.root.x));
     const w=cc*48/dist*(f.duckA>.5?.5:1)*(.6+.4*f.stam/100)*f.face;AR.th+=w*dt;AR.mx=px-Math.cos(AR.th)*k;AR.mz=pz-Math.sin(AR.th)*k;f.circV=cc;f.walkPh+=Math.abs(cc)*dt*6;f.stam=Math.max(0,f.stam-Math.abs(cc)*dt*1.2);bounds()}
+  if(game.cine&&!game.cine.hit)for(const f of F){const c=f.ctrl;c.block=c.duck=c.sway=false;c.duckV=c.swayV=c.slip=0;c.move=0;f.dodge=null;f.sideT=0}
   A.update(dt,game.t);
   if(tr){
     bag.step(dt,A);const d=A.root.x-bag.s;if(Math.abs(d)<44)A.root.x=bag.s+(d<0?-44:44);
@@ -1858,7 +1862,7 @@ function frame(now){
   if(input.charging)input.charge=Math.min(1,input.charge+rdt/.8);
   if(input.armT>0){input.armT-=rdt;if(input.armT<=0)input.armC=0}
   let ts=1;
-  if(game.cine){const c=game.cine;c.rt+=rdt;const hold=c.hit?Math.min(3.6,c.hitRt+2.4):1.05;
+  if(game.cine){const c=game.cine;c.rt+=rdt;const hold=c.hit?Math.min(5,c.hitRt+2.4):3;
     if(c.rt<.22)c.kz=ease(c.rt/.22);else if(c.rt<hold)c.kz=1;else{c.kz=1-ease(Math.min(1,(c.rt-hold)/.45));if(c.rt>=hold+.45){game.cine=null;game.cineCool=15;if(c.after)showMsg(c.after,1.1);if(game.state==='count')game.slow=.6}}
     ts=lerp(1,.07,game.cine?game.cine.kz:0)}
   if(game.hitstop>0)game.hitstop-=rdt;
