@@ -106,7 +106,7 @@ button{font-family:inherit;cursor:pointer}
 </style>
 </head>
 <body>
-<canvas id="cv"></canvas>
+<div id="crt"></div><canvas id="cv"></canvas>
 <canvas id="ui"></canvas>
 <div id="ctl"></div>
 <div id="hud" class="hide">
@@ -126,7 +126,7 @@ button{font-family:inherit;cursor:pointer}
   <div class="card" id="mainCard">
     <div>
       <h1>RINGSIDE<span>32</span></h1>
-      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V28</span></p>
+      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V29</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
       <button id="go" class="big">SNABB MATCH</button>
@@ -266,7 +266,7 @@ const SFX={
 };
 
 // ---------- 3D-kamera (look-at, zoombar) ----------
-const RB=250,FOC=300,NEAR=14,YAW=-.78,BASE_D=225,BASE_P=.08,BASE_Y=88;
+const RB=250,FOC=300,NEAR=14,YAW=-.24,BASE_D=190,BASE_P=.08,BASE_Y=96;
 const HC=GROUND+(-150*Math.cos(BASE_P)+300*Math.sin(BASE_P))*300/(300*Math.cos(BASE_P)+150*Math.sin(BASE_P));
 const AR={mx:0,mz:0,th:0,anim:null};
 const CAM={th:YAW,px:0,py:0,pz:0,R:[1,0,0],U:[0,1,0],F:[0,0,1],T:[0,0,0],dist:BASE_D};
@@ -555,7 +555,7 @@ class Fighter{
     const o=this.opp,B=PT[type],cross=hand&&type==='straight';
     this.stam=Math.max(0,this.stam-(mods.feint?1.5:B.c*(cross?1.6:1)*(hay?2.2:1)*(2-this.sKond)));
     const aimDy=mods.aimDy||0;
-    const sp=(1+(1-this.stam/100)*.45)*this.sSpd*(mods.wind||1);let w=B.w*(cross?1.45:1),r=B.r;if(hay){w*=1.9;r*=1.3}
+    const sp=this.sSpd*(mods.wind||1);let w=B.w*(cross?1.45:1),r=B.r;if(hay){w*=1.9;r*=1.3}
     let dmg=B.d*(hand?(type==='straight'?1.7:1.12):1)*(hay?1.85:1)*(mods.pow||1)*this.sPow*this.focus;
     if(o.stance&&o.stance!==this.stance&&cross)dmg*=1.12;
     this.punch={type,hand,body,hay,aim:{x:0,y:0},noise:rand(-1.2,1.2)+(this.stun>.5?rand(-3,3):0),w:w*sp,st:B.s*this.sSpd*(mods.stS||1),zdev:mods.zdev||null,r:r*sp,t:0,phase:'wind',s:0,k:0,hit:false,dmg,seen:false,wz:mods.wz||20,dip:mods.dip||0,aimDy,feint:!!mods.feint};
@@ -1208,7 +1208,7 @@ function step(dt){
   // cirkla runt motståndaren (vänster spak upp/ner) – arenan/kameran följer
   for(const f of(tr?[A]:F)){const cc=f.ctrl.circle||0;f.circV=0;if(!cc||f.down||f.rising>0||inClinch(f)||AR.anim||!(st==='fight'||st==='train'))continue;
     const o=f.opp,k=o.root.x-320,c0=Math.cos(AR.th),s0=Math.sin(AR.th),px=AR.mx+c0*k,pz=AR.mz+s0*k,dist=Math.max(30,Math.abs(f.root.x-o.root.x));
-    const w=cc*48/dist*(f.duckA>.5?.5:1)*(.6+.4*f.stam/100)*f.face;AR.th+=w*dt;AR.mx=px-Math.cos(AR.th)*k;AR.mz=pz-Math.sin(AR.th)*k;f.circV=cc;f.walkPh+=Math.abs(cc)*dt*6;f.stam=Math.max(0,f.stam-Math.abs(cc)*dt*1.2);bounds()}
+    const w=cc*48/dist*(f.duckA>.5?.5:1)*f.face;AR.th+=w*dt;AR.mx=px-Math.cos(AR.th)*k;AR.mz=pz-Math.sin(AR.th)*k;f.circV=cc;f.walkPh+=Math.abs(cc)*dt*6;f.stam=Math.max(0,f.stam-Math.abs(cc)*dt*1.2);bounds()}
   if(game.cine&&!game.cine.hit)for(const f of F){const c=f.ctrl;c.block=c.duck=c.sway=false;c.duckV=c.swayV=c.slip=0;c.move=0;f.dodge=null;f.sideT=0}
   A.update(dt,game.t);
   if(tr){
@@ -1695,13 +1695,13 @@ function stylMesh(T,key,mat){
   // ---- armar: stor deltoid, biceps, underarm
   for(const s of'LR'){const ua=B('uarm.'+s),fa=B('farm.'+s),A=bh[ua],E=bh[fa],Wr=bt[fa],d1=vnorm(vsub(E,A)),d2=vnorm(vsub(Wr,E)),fr=(d)=>{const x=vnorm(cross(d,[0,0,1]).map((v,i)=>v||[1,0,0][i]));return[x,vnorm(cross(x,d))]};
     let[x1,z1]=fr(d1);const L1=Math.hypot(...vsub(E,A));
-    loft([[-.2,.3],[0,.5],[.16,.55],[.4,.44],[.58,.46],[.82,.36],[1,.33]].map(([t,r])=>({c:vadd(A,vmul(d1,t*L1)),rx:r*S,rzf:r*S*(t>.3&&t<.7?1.1:1),rzb:r*S*.95,w:t<.85?[[ua,1]]:[[ua,.5],[fa,.5]]})),x1,z1,8,null,true,true);
+    loft([[-.2,.3],[0,.5],[.16,.55],[.4,.44],[.58,.46],[.82,.36],[1,.33]].map(([t,r])=>({c:vadd(A,vmul(d1,t*L1)),rx:r*S,rzf:r*S*(t>.3&&t<.7?1.1:1),rzb:r*S*.95,w:t<.05?[[ua,.55],[B('chest'),.45]]:t<.85?[[ua,1]]:[[ua,.5],[fa,.5]]})),x1,z1,8,null,true,true);
     let[x2,z2]=fr(d2);const L2=Math.hypot(...vsub(Wr,E));
     loft([[0,.34],[.22,.42],[.5,.37],[.85,.28],[1.05,.25]].map(([t,r])=>({c:vadd(E,vmul(d2,t*L2)),rx:r*S,rzf:r*S,rzb:r*S,w:t<.1?[[fa,.6],[ua,.4]]:[[fa,1]]})),x2,z2,8,null,true,true)}
   // ---- ben + vida shorts
   for(const s of'LR'){const th=B('thigh.'+s),sh=B('shin.'+s),Hp=bh[th],K=bh[sh],An=bh[B('foot.'+s)],d1=vnorm(vsub(K,Hp)),d2=vnorm(vsub(An,K)),xs=s==='L'?1:-1;
     const x1=vnorm(cross([0,0,1],d1)),z1=vnorm(cross(d1,x1)),L1=Math.hypot(...vsub(K,Hp)),L2=Math.hypot(...vsub(An,K));
-    loft([[0,.64],[.25,.66],[.55,.56],[.85,.44],[1,.4]].map(([t,r])=>({c:vadd(Hp,vmul(d1,t*L1)),rx:r*S,rzf:r*S*1.05,rzb:r*S,w:t<.85?[[th,1]]:[[th,.5],[sh,.5]]})),x1,z1,8,null,true,true);
+    loft([[0,.64],[.25,.66],[.55,.56],[.85,.44],[1,.4]].map(([t,r])=>({c:vadd(Hp,vmul(d1,t*L1)),rx:r*S,rzf:r*S*1.05,rzb:r*S,w:t<.1?[[th,.6],[B('hips'),.4]]:t<.85?[[th,1]]:[[th,.5],[sh,.5]]})),x1,z1,8,null,true,true);
     const x2=vnorm(cross([0,0,1],d2)),z2=vnorm(cross(d2,x2));
     loft([[0,.4],[.25,.5],[.5,.41],[.8,.31],[1,.28]].map(([t,r])=>({c:vadd(K,vmul(d2,t*L2)),rx:r*S,rzf:r*S,rzb:r*S*(t>.15&&t<.5?1.15:1),w:t<.1?[[sh,.6],[th,.4]]:[[sh,1]]})),x2,z2,8,null,true,true);
     // shorts-ben: vidare och rakare, vit rand på utsidan
@@ -1729,8 +1729,8 @@ function ik3(S,Tg,L1,L2,pole,fb){let d=vsub(Tg,S),dl=Math.hypot(d[0],d[1],d[2])|
 
 // kollisionsformer för en kropp: bål (två elliptiska cylindrar) och huvud (klot) – används så att armar/handskar inte går igenom kroppar
 function clipShapes(h){const{BI,bh,bt,Q}=h,P=h.P,sw=h.sw||(h.sw=Math.abs(bh[BI['uarm.L']][0]));const sh=[];
-  for(const[bn,rx,rz]of[['spine',.6,.45],['chest',.72,.5]]){const i=BI[bn];sh.push({a:P[i],b:vadd(P[i],qrot(Q[i],vsub(bt[i],bh[i]))),X:qrot(Q[i],[1,0,0]),Z:qrot(Q[i],[0,0,1]),rx:rx*sw,rz:rz*sw})}
-  const hi=BI.head,hd=qrot(Q[hi],vsub(bt[hi],bh[hi]));return{sh,hc:vadd(P[hi],vmul(hd,.46)),hr:Math.hypot(...hd)*.4}}
+  const st=h.styl;for(const[bn,rx,rz]of st?[['spine',.78,.62],['chest',1.16,.82]]:[['spine',.6,.45],['chest',.72,.5]]){const i=BI[bn];sh.push({a:P[i],b:vadd(P[i],qrot(Q[i],vsub(bt[i],bh[i]))),X:qrot(Q[i],[1,0,0]),Z:qrot(Q[i],[0,0,1]),rx:rx*sw,rz:rz*sw})}
+  const hi=BI.head,hd=qrot(Q[hi],vsub(bt[hi],bh[hi]));return{sh,hc:vadd(P[hi],vmul(hd,st?.5:.46)),hr:Math.hypot(...hd)*(st?.62:.4)}}
 function pushOut(p,S,r){
   for(const c of S.sh){const ab=vsub(c.b,c.a),L2=vdot(ab,ab)||1,t=vdot(vsub(p,c.a),ab)/L2;if(t<-.15||t>1.15)continue;const an=vnorm(ab),base=vadd(c.a,vmul(ab,clamp(t,0,1))),d=vsub(p,base),x=vdot(d,c.X),z=vdot(d,c.Z),ax=c.rx+r,az=c.rz+r,e=Math.hypot(x/ax,z/az);
     if(e<1){const nx=e>1e-3?x/e:0,nz=e>1e-3?z/e:az;p=vadd(base,vadd(vadd(vmul(c.X,nx),vmul(c.Z,nz)),vmul(an,vdot(d,an))))}}
@@ -1756,9 +1756,9 @@ function human3(o){
   for(const s of'LR'){const lead=s===leadS,ai=lead?0:1,cl=BI['clav.'+s],ua=BI['uarm.'+s],fa=BI['farm.'+s],hd=BI['hand.'+s];
     put(cl,Q[BI.chest]);const S=vadd(Pw[cl],qrot(Q[cl],vsub(bh[ua],bh[cl])));
     const L1=len(ua),L2=len(fa)+4.2,fbp=vadd(vmul(Fr(rot),-.6),[0,-1,0]),own=clipShapes(h),op=R3&&R3.fighters.find(q=>q!==o&&q.hum&&q.grp.visible&&!q.f.down);
-    let Tg=W3(lead?5:7),pole=W3(lead?4:6);Tg=pushOut(Tg,own,6.5);if(op&&op.hum.P[0])Tg=pushOut(Tg,clipShapes(op.hum),6.5);
-    let k=ik3(S,Tg,L1,L2,pole,fbp);const E2=pushOut(k.E,own,3.4);if(vdist(E2,k.E)>.05){pole=vadd(E2,vsub(E2,vlerp(S,k.T,.5)));k=ik3(S,Tg,L1,L2,pole,fbp)}
-    {const mid=vlerp(k.E,k.T,.5),m2=pushOut(mid,own,3.2);if(vdist(m2,mid)>.05){Tg=vadd(k.T,vsub(m2,mid));k=ik3(S,Tg,L1,L2,pole,fbp)}}
+    const AR2=h.styl?1.5:1;let Tg=W3(lead?5:7),pole=W3(lead?4:6);Tg=pushOut(Tg,own,6.8*AR2*.85);if(op&&op.hum.P[0])Tg=pushOut(Tg,clipShapes(op.hum),6.8);
+    let k=ik3(S,Tg,L1,L2,pole,fbp);const E2=pushOut(k.E,own,3.4*AR2);if(vdist(E2,k.E)>.05){pole=vadd(E2,vsub(E2,vlerp(S,k.T,.5)));k=ik3(S,Tg,L1,L2,pole,fbp)}
+    for(let it=0;it<2;it++){const mid=vlerp(k.E,k.T,.5),m2=pushOut(mid,own,3.2*AR2);if(vdist(m2,mid)>.05){Tg=vadd(k.T,vsub(m2,mid));k=ik3(S,Tg,L1,L2,pole,fbp)}}
     put(ua,frameQ(rest(ua),h.ra[s],vsub(k.E,S),k.pv,q));put(fa,frameQ(rest(fa),h.ra[s],vsub(k.T,k.E),k.pv,q));put(hd,Q[fa]);
     const A=h.arm[ai];A.wr=Pw[hd];A.dir=vnorm(vsub(k.T,k.E));A.el=Pw[fa];A.sh=S;A.s=s}
   for(const s of'LR'){const lead=s===leadS,li=lead?0:1,th=BI['thigh.'+s],sh=BI['shin.'+s],ft=BI['foot.'+s];
@@ -2068,10 +2068,15 @@ function init3D(THREE){
       float b4(vec2 a){return b2(.5*a)*.25+b2(a);}
       vec3 grade(vec2 u){vec3 c=texture2D(tC,u).rgb;c=aces(c*1.05);return pow(c,vec3(1./2.2));}
       void main(){
-        vec2 uv=vUv;vec3 c=grade(uv);vec2 p=1./res;
-        vec3 gl=(grade(uv+vec2(3.*p.x,0.))+grade(uv-vec2(3.*p.x,0.))+grade(uv+vec2(0.,3.*p.y))+grade(uv-vec2(0.,3.*p.y)))*.25;c+=max(gl-.62,0.)*.6;
+        // CRT: bukt, färgfransar, glöd, scanlines, RGB-mask, vinjett, flimmer
+        vec2 q=vUv*2.-1.;q+=q*(q.yx*q.yx)*vec2(.028,.04);vec2 uv=q*.5+.5;
+        if(uv.x<0.||uv.x>1.||uv.y<0.||uv.y>1.){gl_FragColor=vec4(0.,0.,0.,1.);return;}
+        vec2 p=1./res;float ca=.0018*length(q);vec3 c=vec3(grade(uv+vec2(ca,0.)).r,grade(uv).g,grade(uv-vec2(ca,0.)).b);
+        vec3 gl=(grade(uv+vec2(3.*p.x,0.))+grade(uv-vec2(3.*p.x,0.))+grade(uv+vec2(0.,3.*p.y))+grade(uv-vec2(0.,3.*p.y)))*.25;c+=max(gl-.55,0.)*.6;
         c=mix(c,c*vec3(.55,.8,1.15)*.8+vec3(0.,.015,.04),xr);
-        vec2 q=uv*2.-1.;c*=1.-.22*dot(q*vec2(.8,1.),q*vec2(.8,1.))*.5;
+        float sl=fract(gl_FragCoord.y/3.);c*=mix(1.,.78,smoothstep(.3,.5,abs(sl-.5)));
+        float m=mod(gl_FragCoord.x,3.);vec3 mask=m<1.?vec3(1.,.74,.74):m<2.?vec3(.74,1.,.74):vec3(.74,.74,1.);c*=mix(vec3(1.),mask,.32)*1.16;
+        float v=16.*uv.x*uv.y*(1.-uv.x)*(1.-uv.y);c*=pow(v,.22);c*=.985+.015*sin(time*62.);
         gl_FragColor=vec4(c,1.);}`});
   const pScene=new T.Scene(),pCam=new T.OrthographicCamera(-1,1,1,-1,0,1);pScene.add(new T.Mesh(new T.PlaneGeometry(2,2),post));
   // spelets koordinater är vänsterhänta: spegla hela världen (och kameran) så att bilden matchar 2D-lagret
