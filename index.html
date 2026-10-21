@@ -126,7 +126,7 @@ button{font-family:inherit;cursor:pointer}
   <div class="card" id="mainCard">
     <div>
       <h1>RINGSIDE<span>32</span></h1>
-      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V25</span></p>
+      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V26</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
       <button id="go" class="big">SNABB MATCH</button>
@@ -188,8 +188,8 @@ const NAMES={straight:['JABB','RAK HÖGER'],hook:['VÄNSTERKROK','HÖGERKROK'],u
 const DIFF={latt:{react:.2,aggr:.42,think:[.45,.9],dmg:.8,counter:.1,side:.4,parry:.04,learn:.1,feint:.04},normal:{react:.4,aggr:.58,think:[.3,.65],dmg:1,counter:.3,side:.8,parry:.12,learn:.25,feint:.12},svar:{react:.6,aggr:.76,think:[.18,.42],dmg:1.18,counter:.55,side:1.3,parry:.25,learn:.42,feint:.25}};
 // anatomiska zoner: d = skademultipel, s = chockmultipel
 const ZM={KAKE:{d:1.15,s:1.45,lab:'KÄKEN'},TINNING:{d:1.1,s:1.3,lab:'TINNINGEN'},NASA:{d:1.05,s:.9,lab:'NÄSAN'},HUVUD:{d:1,s:1,lab:''},LEVER:{d:1.2,s:.6,lab:'LEVERN'},SOLAR:{d:1.1,s:.8,lab:'SOLAR PLEXUS'},REVBEN:{d:1.2,s:.5,lab:'REVBENEN'},MAGE:{d:1,s:.6,lab:''}};
-const LOOKS=[{name:'KID KAOS',skin:'#dba36c',glove:'#d8262c',trunk:'#c41e2e',band:'#f4f0e6',boot:'#1c1c24',hair:'#3b2416'},
-             {name:'BJÖRN BERG',skin:'#9c6646',glove:'#2458d8',trunk:'#1c3a9c',band:'#e8c040',boot:'#e4e4ea',hair:null,beard:'#2a1a10'}];
+const LOOKS=[{name:'KID KAOS',skin:'#d99a6c',glove:'#d8262c',trunk:'#c8202c',band:'#f4f0e6',boot:'#c8202c',hair:'#3a2214'},
+             {name:'BJÖRN BERG',skin:'#9c6646',glove:'#2458d8',trunk:'#1f48c8',band:'#f4f0e6',boot:'#1f48c8',hair:'#2a1a10',beard:'#2a1a10'}];
 const LADDER=[
   {name:'TOMMY TAPP',diff:'latt',skin:'#e6b894',glove:'#2a9a3a',trunk:'#2a7a2a',band:'#ffffff',boot:'#2a2a2a',hair:'#c89a40'},
   {name:'RICO RAPP',diff:'latt',skin:'#b07850',glove:'#e0a020',trunk:'#7a2a8a',band:'#e0a020',boot:'#eeeeee',hair:'#1a1008'},
@@ -266,7 +266,7 @@ const SFX={
 };
 
 // ---------- 3D-kamera (look-at, zoombar) ----------
-const RB=250,FOC=300,NEAR=14,YAW=-.3,BASE_D=212,BASE_P=.09,BASE_Y=102;
+const RB=250,FOC=300,NEAR=14,YAW=-.24,BASE_D=184,BASE_P=.08,BASE_Y=100;
 const HC=GROUND+(-150*Math.cos(BASE_P)+300*Math.sin(BASE_P))*300/(300*Math.cos(BASE_P)+150*Math.sin(BASE_P));
 const AR={mx:0,mz:0,th:0,anim:null};
 const CAM={th:YAW,px:0,py:0,pz:0,R:[1,0,0],U:[0,1,0],F:[0,0,1],T:[0,0,0],dist:BASE_D};
@@ -1656,7 +1656,7 @@ function humanMesh(T,key,mat){
   bones[BI['hand.L']].scale.setScalar(.32);bones[BI['hand.R']].scale.setScalar(.32); // händerna knyts ihop inne i handsken
   // armbågens viloriktning (underarmarna är lätt böjda i grundposen) – används som referens för armbågens läge
   const ra={};for(const s of'LR'){const S=bh[BI['uarm.'+s]],E=bh[BI['farm.'+s]],Wr=bt[BI['farm.'+s]],u=vnorm(vsub(Wr,S)),d=vsub(E,S);ra[s]=vnorm(vsub(d,vmul(u,vdot(d,u))))}
-  return{mesh,bones,bh,bt,BI,par:J.parent,ra,reg:cp('reg'+key,Uint8Array),eyes:V.eyes.map(e=>e.map(x=>x*HS)),Q:bones.map(()=>new T.Quaternion()),P:bones.map(()=>[0,0,0]),look:null,arm:[{},{}],leg:[{},{}]};
+  return{mesh,bones,bh,bt,BI,par:J.parent,ra,reg:cp('reg'+key,Uint8Array),sh:J.buf['sh'+key]?cp('sh'+key,Uint8Array):null,eyes:V.eyes.map(e=>e.map(x=>x*HS)),Q:bones.map(()=>new T.Quaternion()),P:bones.map(()=>[0,0,0]),look:null,arm:[{},{}],leg:[{},{}]};
 }
 function hq(){if(!HQ){const T=T3;HQ={m1:new T.Matrix4(),m2:new T.Matrix4(),m3:new T.Matrix4(),q:new T.Quaternion(),q2:new T.Quaternion(),v:new T.Vector3(),s:new T.Vector3()}}return HQ}
 function qrot(q,a){const v=hq().v.set(a[0],a[1],a[2]).applyQuaternion(q);return[v.x,v.y,v.z]}
@@ -1684,7 +1684,7 @@ function human3(o){
   for(const r of f.rip)r.w=ripWorld(f,r);
   const{BI,bh,bt,Q,par}=h,Pw=h.P,rest=i=>vsub(bt[i],bh[i]),len=i=>Math.hypot(...rest(i));
   if(h.look!==f.look){h.look=f.look;const lk=f.look,sk=lin(lk.skin),C=[sk,lin(lk.trunk),lin(lk.band),lin(lk.hair||hx(lk.skin,.8)),lin(lk.beard||hx(lk.skin,.85)),lin(hx(lk.skin,.74))];
-    C[5]=[C[5][0]*1.08,C[5][1]*.82,C[5][2]*.82];const a=h.mesh.geometry.attributes.color;for(let i=0;i<h.reg.length;i++){const c=C[h.reg[i]];a.array[i*3]=c[0];a.array[i*3+1]=c[1];a.array[i*3+2]=c[2]}a.needsUpdate=true}
+    C[5]=[C[5][0]*1.08,C[5][1]*.82,C[5][2]*.82];const a=h.mesh.geometry.attributes.color;for(let i=0;i<h.reg.length;i++){const c=C[h.reg[i]],k=h.sh?h.sh[i]/255:1,kr=k,kb=k*k*.85+.15*k;a.array[i*3]=c[0]*kr;a.array[i*3+1]=c[1]*(k*.94+.06*kb);a.array[i*3+2]=c[2]*kb}a.needsUpdate=true}
   const put=(i,q)=>{const p=par[i];Pw[i]=p<0?Pel.slice():vadd(Pw[p],qrot(Q[p],vsub(bh[i],bh[p])));Q[i].copy(q);const b=h.bones[i];
     if(p<0){b.position.set(Pw[i][0],Pw[i][1],Pw[i][2]);b.quaternion.copy(q)}else b.quaternion.copy(H.q2.copy(Q[p]).invert().multiply(q))};
   const q=H.q,Z=[0,0,1];
@@ -1724,9 +1724,13 @@ function humanDress(o){
     loft3(o.glove[i],wr,gb,[[0,4.3],[.12,4.4],[.2,5.5],[.34,6.4,.1],[.48,6.8,.14],[.64,7,.12],[.78,7,.1],[.9,6.2],[.96,5],[1,3]],fwW,r=>r<=1?WH:r===2?GT:GL);
     const wu=[0,1,0],tv=vnorm(vsub(wu,vmul(A.dir,vdot(wu,A.dir)))),cr=vnorm(cross(A.dir,tv));
     ell3(o.thumb[i],vadd(vlerp(wr,gb,.44),vadd(vmul(tv,4.5),vmul(cr,(i?3.2:-3.2)))),vmul(tv,2.4),vmul(A.dir,3.7),vmul(cr,2.4),null,()=>GL)});
+  if(o.hair){o.hair.visible=!!lk.hair;if(lk.hair)o.hair.material.color.set(lk.hair)}
+  {const hi=BI.hips,UPh=qrot(Q[hi],[0,1,0]),Xh=qrot(Q[hi],[1,0,0]),TRK=lin(lk.trunk),BND=lin(lk.band),TD=lin(hx(lk.trunk,.8)),leadS=f.stance===1?'R':'L';
+    ['L','R'].forEach(s=>{const lead=s===leadS,i=lead?0:1,th=BI['thigh.'+s],hip=Pw[th],kn=Pw[BI['shin.'+s]],top=vadd(vadd(hip,vmul(UPh,7.5)),vmul(Xh,s==='L'?-1.2:1.2)),bot=vlerp(hip,kn,.56),out=vmul(Xh,s==='L'?1:-1);
+      loft3(o.shorts[i],top,bot,[[0,8.6],[.25,9.2],[.6,9.3],[.85,9],[1,8.7]],null,(r,ss,d)=>r===0?BND:vdot(d,out)>.94?BND:r>=6?TD:TRK)})}
   const lum=(()=>{const n=parseInt(lk.boot.slice(1),16);return((n>>16)+(n>>8&255)+(n&255))/3})(),LACE=lin(lum>128?'#8a8a90':'#dcdce0'),SOLE=lin(lum>128?'#3a3a40':'#ececee'),BT=lin(lk.boot);
-  h.leg.forEach((L,i)=>{const top=vlerp(L.an,L.kn,.36),an=vadd(L.an,[0,-.6,0]);
-    loft3(o.bootG[i],top,an,[[0,3.6],[.15,4],[.5,4],[1,4.1]],null,(r,ss,d)=>r===0?SOLE:vdot(d,L.fd)>.7?LACE:BT);
+  const WH2=lin('#f2f0ea');h.leg.forEach((L,i)=>{const top=vlerp(L.an,L.kn,.36),an=vadd(L.an,[0,-.6,0]);
+    loft3(o.bootG[i],vlerp(L.an,L.kn,.5),an,[[0,3.9],[.12,4.2],[.5,4.1],[1,4.2]],null,(r,ss,d)=>r===0?WH2:vdot(d,L.fd)>.72?LACE:BT);
     const heel=vadd(vsub(L.an,vmul(L.fd,3.2)),[0,-3.6,0]),toe=[L.toe[0],L.toe[1]+.4,L.toe[2]];
     loft3(o.foot[i],heel,vadd(toe,vmul(L.fd,1)),[[0,3.4],[.3,3.7],[.8,3.3],[1,2.2]],null,(r,ss,d)=>d[1]<-.35?SOLE:BT)});
 }
@@ -1963,7 +1967,7 @@ function init3D(THREE){
       h+=.35*g2(.5,.85,.18,.03)+.06*vnoise(u*64,v*64);return h},3.2);
   const skinN=nmapTex(128,(u,v)=>.6*vnoise(u*24,v*24)+.3*vnoise(u*64,v*64),1.6);
   const mk=(o)=>new T.MeshPhysicalMaterial(Object.assign({vertexColors:true,color:0xffffff,side:T.DoubleSide},o));
-  let RW=null;const TOON=new T.DataTexture(new Uint8Array([70,70,70,255,135,135,135,255,200,200,200,255,255,255,255,255]),4,1);TOON.minFilter=TOON.magFilter=T.NearestFilter;TOON.needsUpdate=true;
+  let RW=null;const TOON=new T.DataTexture(new Uint8Array([62,62,62,255,118,118,118,255,178,178,178,255,228,228,228,255]),4,1);TOON.minFilter=TOON.magFilter=T.NearestFilter;TOON.needsUpdate=true;
   const fighters=F.map(f=>{
     const skin=mk({roughness:.5,clearcoat:.15,clearcoatRoughness:.4,sheen:.4,sheenColor:new T.Color(0xff9070),sheenRoughness:.6,normalMap:skinN,normalScale:new T.Vector2(.25,.25)});
     const torsoM=mk({roughness:.5,clearcoat:.15,clearcoatRoughness:.4,sheen:.4,sheenColor:new T.Color(0xff9070),sheenRoughness:.6,normalMap:torsoN,normalScale:new T.Vector2(.9,.9)});
@@ -1981,8 +1985,12 @@ function init3D(THREE){
     if(HUM){try{
       const hs=new T.MeshToonMaterial({vertexColors:true,color:0xffffff,gradientMap:TOON});
       o.hum=humanMesh(T,f.idx?'b':'a',hs);grp.add(o.hum.mesh);o.skin=o.torsoM=hs;o.xr=buildXray(T,o);
+      {const h=o.hum,hi=h.BI.head,H0=h.bh[hi],H1=h.bt[hi],hh=Math.hypot(...vsub(H1,H0)),g=new T.SphereGeometry(1,20,12,0,Math.PI*2,0,Math.PI*.56),pa=g.attributes.position;
+        for(let i=0;i<pa.count;i++){const x=pa.getX(i),y=pa.getY(i),z=pa.getZ(i),n=1+.1*Math.sin(x*9+z*7)*Math.sin(y*11+x*5)+.06*Math.sin(z*17);pa.setXYZ(i,x*n,y*n,z*n)}g.computeVertexNormals();
+        const hair=new T.Mesh(g,new T.MeshToonMaterial({color:0x3b2416,gradientMap:TOON}));const c=vadd(vlerp(H0,H1,.5),[0,hh*.03,-hh*.06]);hair.position.set(c[0]-H0[0],c[1]-H0[1],c[2]-H0[2]);hair.scale.set(hh*.47,hh*.5,hh*.55);hair.rotation.x=-.42;hair.castShadow=true;h.bones[hi].add(hair);o.hair=hair}
+      o.shorts.forEach(g=>{g.mesh.visible=true;g.mesh.material=new T.MeshToonMaterial({vertexColors:true,color:0xffffff,gradientMap:TOON,side:T.DoubleSide})});
       if(CANNON){if(!RW){RW=ragWorld();ragWalls(RW)}o.rag=ragBuild(RW,o.hum,f.idx?4:2)}
-      for(const k of['torso','neck','head','nose'])o[k].mesh.visible=false;for(const k of['ears','delt','uarm','farm','shorts','thigh','shin'])o[k].forEach(g=>g.mesh.visible=false);
+      for(const k of['torso','neck','head','nose'])o[k].mesh.visible=false;for(const k of['ears','delt','uarm','farm','shorts','thigh','shin'])o[k].forEach(g=>{if(k!=='shorts')g.mesh.visible=false});
       o.brows.forEach(b=>b.visible=false);o.mouth.visible=false;o.eyes.forEach(e=>{e.w.scale.set(1,1,1)});
     }catch(e){console.error('människomodell av:',e);o.hum=null}}
     return o});
@@ -2009,7 +2017,8 @@ function init3D(THREE){
         float d=ld(cell),e=0.;
         e=max(e,abs(ld(cell+vec2(p.x,0.))-d));e=max(e,abs(ld(cell-vec2(p.x,0.))-d));e=max(e,abs(ld(cell+vec2(0.,p.y))-d));e=max(e,abs(ld(cell-vec2(0.,p.y))-d));
         float edge=step(4.+d*.018,e)*step(d,700.);
-        c=floor(c*14.+(b4(floor(uv*res))-.5)*.35+.5)/14.;c=mix(c,vec3(.04,.02,.05),edge*.92);c=mix(c,c*vec3(.55,.8,1.15)*.8+vec3(0.,.015,.04),xr);
+        {float L=dot(c,vec3(.3,.59,.11));c=mix(c*vec3(.82,.78,1.08),c*vec3(1.05,1.,.92),smoothstep(.2,.7,L));c=pow(c,vec3(.95))*1.06;}
+        c=floor(c*12.+(b4(floor(uv*res))-.5)*.3+.5)/12.;c=mix(c,vec3(.04,.02,.05),edge*.92);c=mix(c,c*vec3(.55,.8,1.15)*.8+vec3(0.,.015,.04),xr);
         float sl=fract(uv.y*res.y);c*=mix(1.,.84,smoothstep(.36,.5,abs(sl-.5)));
         float m=mod(gl_FragCoord.x,3.);vec3 mask=m<1.?vec3(1.,.72,.72):m<2.?vec3(.72,1.,.72):vec3(.72,.72,1.);c*=mix(vec3(1.),mask,.2)*1.1;
         float v=16.*uv.x*uv.y*(1.-uv.x)*(1.-uv.y);c*=pow(v,.22);c*=.985+.015*sin(time*62.);
