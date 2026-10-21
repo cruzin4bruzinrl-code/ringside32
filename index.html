@@ -122,7 +122,7 @@ button{font-family:inherit;cursor:pointer}
   <div class="card" id="mainCard">
     <div>
       <h1>RINGSIDE<span>32</span></h1>
-      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V14</span></p>
+      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V15</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
       <button id="go" class="big">SNABB MATCH</button>
@@ -166,8 +166,8 @@ let RING_L=84,RING_R=556;
 const UA=19,FA=20,TH=27,SH=26,REACH=UA+FA;
 // 0 head,1 neck,2 chest,3 pelvis,4 elbowF,5 handF,6 elbowN,7 handN,8 kneeF,9 footF,10 kneeN,11 footN  (F = ledande sida)
 const INVM=[1/3.5,1/5,1/9,1/10,1/1.8,1/1.4,1/1.8,1/1.4,1/3,1/2.5,1/3,1/2.5];
-const KB=[230,260,270,300,560,680,560,680,380,650,380,650];
-const ZT=[.5,.6,.6,.6,1,1,1,1,.7,.8,.7,.8];
+const KB=[430,480,500,540,600,720,600,720,460,700,460,700];
+const ZT=[.8,.85,.85,.85,1,1,1,1,.85,.9,.85,.9];
 const COLR=[11,5,7,7,4,6,4,6,4,2,4,2];
 const PT={straight:{w:.06,s:.09,r:.15,d:4.5,c:4},hook:{w:.11,s:.12,r:.22,d:8.5,c:8},upper:{w:.15,s:.12,r:.24,d:9.5,c:8},over:{w:.13,s:.13,r:.26,d:9.5,c:9}};
 const NAMES={straight:['JABB','RAK HÖGER'],hook:['VÄNSTERKROK','HÖGERKROK'],upper:['VÄNSTER UPPER','HÖGER UPPER'],over:['VÄNSTER OVERHAND','OVERHAND HÖGER']};
@@ -439,9 +439,10 @@ class Fighter{
   }
   computeTargets(t,dt){
     const d=this.duckA,s=this.swayA,mv=Math.min(1,(Math.abs(this.root.vx)+Math.abs(this.circV||0)*55)/60),pu=this.punch,cl=inClinch(this);
-    const bounce=Math.sin(t*4.4+this.seed),bob=bounce*(this.stun>.5?.8:2.1)+Math.abs(Math.sin(this.walkPh))*1.6*mv;
+    const bounce=Math.sin(t*4.4+this.seed),bob=bounce*(this.stun>.5?.6:1.5)+Math.abs(Math.sin(this.walkPh))*1.6*mv;
     const sl=this.slipA;
-    let spA=.12+.76*d-.64*s+.22*Math.abs(sl),upA=.2+.78*d-.72*s,nkA=.3+.28*d-.4*s,px=-11*d-9*s+2*Math.abs(sl)+Math.sin(t*2.2+this.seed)*1.4,py=46-22*d+bob-10*Math.abs(sl),tw=0;
+    const dd=Math.min(d,1.05),ss=Math.min(s,1.05);
+    let spA=.12+.46*dd-.36*ss+.1*Math.abs(sl),upA=.2+.5*dd-.42*ss,nkA=.3+.18*dd-.25*ss,px=-7*dd-6*ss+1.5*Math.abs(sl)+Math.sin(t*2.2+this.seed)*1.1,py=46-12*dd+bob-4*Math.abs(sl),tw=0;
     if(cl){spA+=.28;upA+=.2}
     if(pu){const k=pu.k;tw=(pu.hand?8:4)*(pu.hay?1.5:1)*k;
       if(pu.type==='upper'){const dp=11+(pu.dip||0)*5;
@@ -490,7 +491,7 @@ class Fighter{
       const h=this.punchHand(pu,pu.hand?gN:gF,nek);if(pu.hand)hN=h;else hF=h;
     }
     const zt=this.zt,zs=this.zs;
-    zt[0]=this.zKick+sl*26;zt[1]=this.zKick*.35+sl*17;zt[2]=this.zKick*.1+sl*8;zt[3]=0;
+    zt[0]=this.zKick+sl*19;zt[1]=this.zKick*.35+sl*12;zt[2]=this.zKick*.1+sl*5;zt[3]=0;
     zt[4]=zeF;zt[5]=zhF;zt[6]=zeN;zt[7]=zhN;zt[8]=7*sF;zt[9]=8*sF;zt[10]=7*sN;zt[11]=8*sN;
     if(!dt)for(let i=0;i<12;i++)zs[i]=zt[i];
     else if(!this.down){const k=Math.min(1,dt*30);for(let i=0;i<12;i++)zs[i]+=(zt[i]-zs[i])*(i<4?1:k)}
@@ -1077,9 +1078,9 @@ function aiThink(f,dt){
       if(dodged&&Math.random()<D.counter)ai.q=[{type:Math.random()<.5?'hook':'upper',hand:Math.random()<.5?0:1,body:false,hay:false,delay:.25}];
     }}
   c.block=ai.blockT>0&&f.guardBreakT<=0;c.duck=ai.duckT>0;c.sway=ai.swayT>0;
-  ai.lt=(ai.lt||0)-dt;if(ai.lt<=0||(op&&op.phase==='wind'&&!ai.lw)){ai.lw=!!(op&&op.phase==='wind');ai.lt=rand(.22,.6);const a=Math.random()*6.2832,m=Math.random()<.3?0:rand(.3,.95)*Math.min(1,.5+D.react);ai.lv={d:Math.max(0,Math.cos(a))*m,s:Math.max(0,-Math.cos(a))*m*.8,sl:Math.sin(a)*m}}
+  ai.lt=(ai.lt||0)-dt;if(ai.lt<=0||(op&&op.phase==='wind'&&!ai.lw)){ai.lw=!!(op&&op.phase==='wind');ai.lt=rand(.22,.6);const a=Math.random()*6.2832,m=Math.random()<.45?0:rand(.12,.42)*Math.min(1,.5+D.react)+(ai.lw?rand(.2,.45):0);ai.lv={d:Math.max(0,Math.cos(a))*m,s:Math.max(0,-Math.cos(a))*m*.8,sl:Math.sin(a)*m}}
   if(!op)ai.lw=false;
-  if(!f.punch&&!c.block&&ai.lv){c.duckV=ai.lv.d;c.swayV=ai.lv.s;c.slip=ai.lv.sl}else{c.duckV=c.swayV=0;c.slip=0}
+  if(!f.punch&&!c.block&&ai.lv){c.duckV=ai.lv.d;c.swayV=ai.lv.s;c.slip=ai.lv.sl*.8}else{c.duckV=c.swayV=0;c.slip=0}
   if(f.stun>.95&&dist<62&&!game.clinch&&Math.random()<dt*(.6+D.react*1.5)){startClinch(f);return}
   if(game.diffKey==='svar'&&!f.punch&&Math.random()<dt*.04)switchStance(f);
   const ropeBehind=tw>0?f.root.x-RING_L:RING_R-f.root.x;
@@ -1115,6 +1116,7 @@ function hitTest(a,b){
 function separate(){
   const[A,B]=F;if(A.down||B.down||game.clinch)return;const L=A.root.x<=B.root.x?A:B,R=L===A?B:A,d=R.root.x-L.root.x;
   if(d<42){const p=(42-d)/2;L.root.x-=p;R.root.x+=p}
+  for(const[i,j,m]of[[0,0,23],[2,2,22],[0,2,20],[2,0,20]]){const a=L.p[i],b=R.p[j],dx=b.x-a.x,dy=b.y-a.y,dz=R.zs[j]-L.zs[i],dd=Math.hypot(dx,dy,dz);if(dd<m&&dx<m){const q=Math.min(3,(m-dd)*.5);L.root.x-=q;R.root.x+=q}}
 }
 function toCorner(f){const tx=f.idx===0?RING_L+80:RING_R-80;f.ctrl.move=clamp((tx-f.root.x)/25,-1,1)}
 
@@ -1238,8 +1240,8 @@ function playerCtrl(dt=1/120){
     // riktning mot motståndaren på skärmen
     const me=P3(f.p[3].x,f.p[3].y,0),op=P3(f.opp.p[3].x,f.opp.p[3].y,0),sdir=me&&op?(op[0]>=me[0]?1:-1):f.face;
     input.sdir=sdir;if(d>1){dx/=d;dy/=d}
-    const lx=dx*sdir,dz=Math.max(0,Math.abs(lx)-.12)/.88*Math.sign(lx),dzy=Math.max(0,Math.abs(dy)-.12)/.88*Math.sign(dy);
-    dV=Math.max(0,dz)*1.1;sV=Math.max(0,-dz)*1.1;slp=-dzy}
+    const lx=dx*sdir,cv=v=>{const a=Math.max(0,Math.abs(v)-.18)/.82;return Math.sign(v)*a*a*(3-2*a)},dz=cv(lx),dzy=cv(dy);
+    dV=Math.max(0,dz);sV=Math.max(0,-dz);slp=-dzy}
   if(keys.KeyA||keys.ArrowLeft)mx=-1;if(keys.KeyD||keys.ArrowRight)mx=1;if(keys.KeyS||keys.ArrowDown)dn=true;if(keys.KeyW||keys.ArrowUp)up=true;
   // fotspaken (nere i hörnet): ←→ gå, ↑↓ cirkla
   if(FS.id!==null){const rf=RAD()*.75,dx=clamp((FS.x-FS.ox)/rf,-1,1),dy=clamp((FS.y-FS.oy)/rf,-1,1),sd=input.sdir||1;mx=Math.abs(dx)>.2?dx:0;circ=Math.abs(dy)>.25?clamp(-dy*1.15,-1,1):0}
