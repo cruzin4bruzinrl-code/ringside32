@@ -1,5 +1,5 @@
 // Ringside 32 service worker: nätverk först för spelet (alltid senaste versionen), cache som reserv offline
-const C='rs32-cache';
+const C='rs32-cache-6';
 const A=['./','index.html','manifest.webmanifest','icon-192.png','icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(A)).catch(()=>{}));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(self.clients.claim())});

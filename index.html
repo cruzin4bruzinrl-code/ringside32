@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#07040c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="manifest" href="manifest.webmanifest?v=6">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Ringside 32</title>
@@ -122,7 +122,7 @@ button{font-family:inherit;cursor:pointer}
   <div class="card" id="mainCard">
     <div>
       <h1>RINGSIDE<span>32</span></h1>
-      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V5</span></p>
+      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V6</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
       <button id="go" class="big">SNABB MATCH</button>
@@ -1192,7 +1192,7 @@ let pendingReload=false;
 window.__reloadIfMenu=()=>{if(pendingReload&&game.state==='menu')location.reload()};
 if('serviceWorker'in navigator&&location.protocol.startsWith('http')){
   const hadCtrl=!!navigator.serviceWorker.controller;
-  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none',scope:'./'}).then(reg=>{
     const myV=($('#ver')||{}).textContent;
     const chk=()=>{if(document.visibilityState!=='visible')return;reg.update().catch(()=>{});
       fetch('index.html',{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/id="ver">([^<]+)</);if(m&&m[1]!==myV&&!pendingReload){pendingReload=true;if(game.state==='menu')location.reload();else pop('NY VERSION – LADDAS I MENYN','#7fe09a',.12)}}).catch(()=>{})};
