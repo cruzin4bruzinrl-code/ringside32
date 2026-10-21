@@ -126,7 +126,7 @@ button{font-family:inherit;cursor:pointer}
   <div class="card" id="mainCard">
     <div>
       <h1>RINGSIDE<span>32</span></h1>
-      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V21</span></p>
+      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V22</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
       <button id="go" class="big">SNABB MATCH</button>
@@ -176,10 +176,10 @@ const ZT=[.8,.85,.85,.85,1,1,1,1,.85,.9,.85,.9];
 const COLR=[11,5,7,7,4,6,4,6,4,2,4,2];
 // slagkoreografi: A = laddat läge (slutet av uppladdningen), B = träffögonblicket. rot = axelrotation (+ = främre axeln fram), hip = höftrotation,
 // px/py = bäckenets förflyttning, lean = framåtlutning, heel = bakre hälen lyfts, knee = främre knät böjs. Kedjan avfyras ben -> höft -> bål -> arm.
-const PK={straight:[{A:{rot:.08,hip:.04,px:-1,py:0,lean:0},B:{rot:.32,hip:.12,px:4,py:-1,lean:.07,knee:2}},{A:{rot:.18,hip:.12,px:-2.5,py:-1,lean:-.03},B:{rot:-.8,hip:-.55,px:7.5,py:-2,lean:.13,heel:4.5,knee:3}}],
-  hook:[{A:{rot:.32,hip:.26,px:-1.5,py:-2,lean:.03},B:{rot:-.6,hip:-.42,px:2,py:-3.5,lean:.06,knee:2}},{A:{rot:-.02,hip:.06,px:-1,py:-1.5,lean:0},B:{rot:-.95,hip:-.62,px:4,py:-3,lean:.08,heel:4.5}}],
-  upper:[{A:{rot:.28,hip:.22,px:-2.5,py:-11,lean:.22},B:{rot:-.38,hip:-.3,px:3,py:5,lean:-.16,knee:-2}},{A:{rot:.12,hip:.12,px:-3,py:-12,lean:.22},B:{rot:-.75,hip:-.52,px:3,py:6,lean:-.16,heel:5.5}}],
-  over:[{A:{rot:.2,hip:.1,px:-2,py:-2,lean:0},B:{rot:-.95,hip:-.6,px:5,py:-6,lean:.32,heel:5}},{A:{rot:.2,hip:.1,px:-2,py:-2,lean:0},B:{rot:-.95,hip:-.6,px:5,py:-6,lean:.32,heel:5}}]};
+const PK={straight:[{A:{rot:.06,hip:.03,px:-1,py:0,lean:0},B:{rot:.23,hip:.09,px:4,py:-1,lean:.05,knee:2}},{A:{rot:.13,hip:.09,px:-2.5,py:-1,lean:-.02},B:{rot:-.58,hip:-.40,px:7.5,py:-2,lean:.09,heel:4.5,knee:3}}],
+  hook:[{A:{rot:.23,hip:.19,px:-1.5,py:-2,lean:.02},B:{rot:-.43,hip:-.30,px:2,py:-3.5,lean:.04,knee:2}},{A:{rot:-.01,hip:.04,px:-1,py:-1.5,lean:0},B:{rot:-.68,hip:-.45,px:4,py:-3,lean:.06,heel:4.5}}],
+  upper:[{A:{rot:.20,hip:.16,px:-2.5,py:-11,lean:.16},B:{rot:-.27,hip:-.22,px:3,py:5,lean:-.12,knee:-2}},{A:{rot:.09,hip:.09,px:-3,py:-12,lean:.16},B:{rot:-.54,hip:-.37,px:3,py:6,lean:-.12,heel:5.5}}],
+  over:[{A:{rot:.14,hip:.07,px:-2,py:-2,lean:0},B:{rot:-.68,hip:-.43,px:5,py:-6,lean:.23,heel:5}},{A:{rot:.14,hip:.07,px:-2,py:-2,lean:0},B:{rot:-.68,hip:-.43,px:5,py:-6,lean:.23,heel:5}}]};
 const ROT0=.38,SW=10;
 // animationsstyrd kropp (som Fight Night): poserna styr, träffar ger fjädrande reaktioner ovanpå. Full ragdoll först vid knockout.
 const RK=[150,190,210,250,260,300,260,300,300,2000,300,2000],RZ=[.4,.5,.55,.6,.6,.6,.6,.6,.6,1,.6,1],RSI=[.55,.6,.6,.5,.7,.7,.7,.7,.4,0,.4,0],RM=[19,10,9,6,14,16,14,16,6,0,6,0];
@@ -971,7 +971,7 @@ function land(a,b,pu,body,g){
     b.guard-=pu.dmg*(pu.hay?10:4.5);
     if(b.guard<=0){b.guard=0;b.guardBreakT=1.3;b.blocking=false;b.stun+=.25;SFX.brk();pop('GARD BRUTEN!','#ff7a5a',.24);game.shake=Math.max(game.shake,5)}
     b.hp=Math.max(1,b.hp-dmg*.05);b.stam=Math.max(0,b.stam-4);b.root.vx+=a.face*80;
-    for(const i of[5,7]){P[i].vx+=dx*90;P[i].vy+=dy*50}P[0].vx+=dx*50;
+    for(const i of[5,7]){P[i].vx+=dx*90;P[i].vy+=dy*50}P[0].vx+=dx*50;(b.rimp=b.rimp||[]).push({part:'farmL',d:vnorm(D2W(dx,dy,0)),m:pu.dmg*60},{part:'farmR',d:vnorm(D2W(dx,dy,0)),m:pu.dmg*60},{part:'chest',d:vnorm(D2W(dx,0,0)),m:pu.dmg*90});
     SFX.block();burst(g.x,g.y,a.face,5,'#cfe3ff',gz);game.shake=Math.max(game.shake,2);if(!game.cine)game.hitstop=Math.max(game.hitstop,.03);vib(12);
     if(!b.isAI&&b.guardBreakT<=0)pop('BLOCK','#9fd0ff',.24);return;
   }
@@ -994,14 +994,14 @@ function land(a,b,pu,body,g){
     const imp=dmg*48*(pu.hay?1.2:1)*(crit?1.6:1);
     P[0].vx+=dx*imp;P[0].vy+=dy*imp+(zone==='KAKE'?-dmg*30:0);P[1].vx+=dx*imp*.2;P[1].vy+=dy*imp*.15;P[2].vx+=dx*imp*.1;
     for(const bb of b.blob){const w=Math.max(0,1-Math.hypot(bb.x-g.x,bb.y-g.y)/20);bb.vx+=dx*imp*1.3*w;bb.vy+=dy*imp*1.3*w}
-    sweat(P[0].x,P[0].y,dx,dy,6+(dmg|0)*(crit?2:1),null,b.zs[0]);
+    sweat(P[0].x,P[0].y,dx,dy,6+(dmg|0)*(crit?2:1),null,b.zs[0]);(b.rimp=b.rimp||[]).push({part:'head',d:vnorm(D2W(dx,dy*.5,0)),m:dmg*70*(crit?1.4:1)*(pu.hay?1.15:1)});
   }else{
     let bd=dmg*(zone==='REVBEN'?1.3:1);
     b.body-=bd;b.hp-=dmg*.3;b.stam=Math.max(0,b.stam-dmg*(zone==='SOLAR'?3:1.3));b.stun+=dmg*.025+(zone==='SOLAR'?.25:0);b.toneDip=Math.min(.7,b.toneDip+dmg*.03);
     if(zone==='LEVER'){b.liverT=cine?.35:.6;b.liverFold=!!cine||(dmg>=8.5&&b.body<55)||Math.random()<(60-b.body)/120;if(!b.liverFold){b.stam=Math.max(0,b.stam-dmg*2);b.stun+=.4}}
     const imp=dmg*30*(crit?1.5:1);P[2].vx+=dx*imp;P[3].vx+=dx*imp*.6;P[0].vx+=dx*imp*.5;P[2].vy+=dy*imp*.4;
     for(const j of b.jig){j.vx+=dx*imp*2.2;j.vy+=dy*imp*1.5}
-    sweat(g.x,g.y,dx,dy,4,null,b.zs[2]);
+    sweat(g.x,g.y,dx,dy,4,null,b.zs[2]);(b.rimp=b.rimp||[]).push({part:zone==='LEVER'||zone==='SOLAR'||zone==='MAGE'?'abdomen':'chest',d:vnorm(D2W(dx,dy*.3,0)),m:dmg*95*(crit?1.4:1)});
   }
   b.body=Math.max(0,b.body);b.hp=Math.max(0,b.hp);b.root.vx+=a.face*dmg*7;a.score+=dmg;a.rd+=dmg;
   const big=dmg>=9;
@@ -1697,6 +1697,10 @@ function human3(o){
     put(th,frameQ(rest(th),Z,vsub(k.E,Hp),k.pv,q));put(sh,frameQ(rest(sh),Z,vsub(k.T,k.E),k.pv,q));
     const rf=rest(ft),hz=Math.hypot(rf[0],rf[2]),fd=lead?Fr(hipR*.4):Fr(hipR+.75);put(ft,frameQ(rf,UP,[fd[0]*hz,rf[1],fd[2]*hz],UP,q));
     const L=h.leg[li];L.kn=Pw[sh];L.an=Pw[ft];L.toe=vadd(Pw[ft],qrot(Q[ft],rf));L.fd=vnorm(fd)}
+  if(!h.TQ){h.TQ=Q.map(q=>q.clone());h.TP=Pw.map(p=>p.slice())}else{Q.forEach((q,i)=>h.TQ[i].copy(q));Pw.forEach((p,i)=>{h.TP[i]=p.slice()})}
+}
+function humanDress(o){
+  const f=o.f,h=o.hum,{BI,bh,Q}=h,Pw=h.P,H=hq(),Z=[0,0,1],fw=D2W(f.face,0,0);
   // ögon
   const hb=BI.head,hqq=Q[hb],fwd=qrot(hqq,Z),M=H.m1;
   h.eyes.forEach((e,i)=>{const c=vadd(Pw[hb],qrot(hqq,vsub(e.slice(0,3),bh[hb]))),r=e[3]*.92,E=o.eyes[i];if(!E)return;
@@ -1802,6 +1806,91 @@ function xrayLabels(ctx,W,H){
     if(cur&&l[3]){const s=PS(l[3]);if(s){ctx.strokeStyle='#7fe8ff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x0+bw-6,y+fs);ctx.lineTo(s[0],s[1]);ctx.stroke();ctx.beginPath();ctx.arc(s[0],s[1],4+2*Math.sin(t*10),0,6.283);ctx.stroke()}}});
   ctx.restore();return true;
 }
+// Fysikmotor: cannon-es (MIT, github.com/pmndrs/cannon-es).
+// ---------- aktiv ragdoll (som Euphoria): stela kroppsdelar + leder med muskelmotorer som jagar animationen ----------
+// Muskelstyrkan (tonus) sjunker när boxaren är skakad och nästan helt vid knockout – då faller kroppen fritt med fysik.
+let CANNON=null;
+// kropp, ben (geometri), radie, massa kg, förälder, ledgräns (rad), styvhet (rad/s)
+const RDB=[['pelvis','hips',0,11,null,0,0],['abdomen','spine',7,8,'pelvis',.5,22],['chest','chest',0,15,'abdomen',.5,22],['head','head',5.4,6,'chest',.9,20],
+  ['uarmL','uarm.L',2.7,2.3,'chest',2.2,30],['farmL','farm.L',2.4,2,'uarmL',2.4,34],['uarmR','uarm.R',2.7,2.3,'chest',2.2,30],['farmR','farm.R',2.4,2,'uarmR',2.4,34],
+  ['thighL','thigh.L',4.4,9,'pelvis',1.6,26],['shinL','shin.L',3.3,4,'thighL',2.4,28],['footL','foot.L',2,1.2,'shinL',.7,26],
+  ['thighR','thigh.R',4.4,9,'pelvis',1.6,26],['shinR','shin.R',3.3,4,'thighR',2.4,28],['footR','foot.R',2,1.2,'shinR',.7,26]];
+function ragWorld(){const C=CANNON,w=new C.World({gravity:new C.Vec3(0,-727,0)});w.solver.iterations=12;w.defaultContactMaterial.friction=.6;w.defaultContactMaterial.restitution=.05;
+  const fl=new C.Body({mass:0,shape:new C.Plane()});fl.quaternion.setFromEuler(-Math.PI/2,0,0);fl.collisionFilterGroup=1;w.addBody(fl);w.floor=fl;w.walls=[];return w}
+function ragBuild(w,h,gi){
+  const C=CANNON,{BI,bh,bt}=h,R={bodies:{},list:[],joints:[],gi,M:{},init:false},sw=Math.abs(bh[BI['uarm.L']][0]);
+  for(const[n,bn,rad,mass,par,lim,wn]of RDB){
+    const i=BI[bn];let A=bh[i],B=bt[i];if(n==='head')A=bh[BI.neck];
+    const M=vlerp(A,B,.5),d=vsub(B,A),L=Math.hypot(...d),b=new C.Body({mass,linearDamping:.05,angularDamping:.12});
+    if(n==='pelvis')b.addShape(new C.Box(new C.Vec3(sw*.62,L*.5+1.5,sw*.42)));
+    else if(n==='chest')b.addShape(new C.Box(new C.Vec3(sw*.72,L*.5+1,sw*.45)));
+    else if(n==='abdomen')b.addShape(new C.Box(new C.Vec3(sw*.58,L*.5,sw*.4)));
+    else if(n.startsWith('foot'))b.addShape(new C.Box(new C.Vec3(2.2,1.3,L*.5)),new C.Vec3(0,0,0));
+    else if(n==='head')b.addShape(new C.Sphere(rad),new C.Vec3(...vmul(d,.22)));
+    else{const q=new C.Quaternion();q.setFromVectors(new C.Vec3(0,1,0),new C.Vec3(...vnorm(d)));b.addShape(new C.Cylinder(rad,rad*.85,L*.8,8),new C.Vec3(0,0,0),q);
+      b.addShape(new C.Sphere(rad*(n.startsWith('farm')?2.1:.9)),new C.Vec3(...vmul(d,n.startsWith('farm')?.62:.5)))}
+    b.collisionFilterGroup=gi;b.collisionFilterMask=1;b.allowSleep=false;
+    w.addBody(b);R.bodies[n]=b;R.list.push(n);R.M[n]={M,A,L,bone:i,par,lim,wn,mass,I:mass*L*L/12+mass*rad*rad/4};
+    if(par){const P=R.M[par],pb=R.bodies[par],ax=new C.Vec3(...vnorm(d));
+      const j=new C.ConeTwistConstraint(pb,b,{pivotA:new C.Vec3(...vsub(A,P.M)),pivotB:new C.Vec3(...vsub(A,M)),axisA:ax,axisB:ax.clone(),angle:lim,twistAngle:.6,maxForce:1e7,collideConnected:false});
+      w.addConstraint(j);R.joints.push(j);R.M[n].pivA=vsub(A,P.M)}}
+  for(const n of R.list){const ch=[];for(const m of R.list){let p=m;while(p){if(p===n){ch.push(m);break}p=R.M[p].par}}R.M[n].chain=ch}
+  for(const n of R.list){const v=R.bodies[n].invInertia,a=[v.x,v.y,v.z].sort((x,y)=>x-y);R.M[n].Io=1/Math.max(a[1],1e-9)}
+  // tröghet för hela kedjan under varje led (en underarm rör bara sig själv, en överarm drar med underarmen)
+  for(const n of R.list){let I=R.M[n].I;for(const m of R.list){let p=R.M[m].par;while(p){if(p===n){I+=R.M[m].I+R.M[m].mass*Math.pow(Math.hypot(...vsub(R.M[m].M,R.M[n].A)),2)*.6;break}p=R.M[p].par}}R.M[n].Ic=I}
+  return R}
+// ställ alla kroppsdelar exakt på målposen (start, eller när boxaren reser sig)
+function ragSnap(R,h,TQ,TP,k){const C=CANNON;for(const n of R.list){const m=R.M[n],b=R.bodies[n],q=TQ[m.bone],p=vadd(TP[m.bone],qrot(q,vsub(m.M,h.bh[m.bone])));
+  if(k>=1){b.position.set(p[0],p[1],p[2]);b.quaternion.set(q.x,q.y,q.z,q.w);b.velocity.setZero();b.angularVelocity.setZero()}
+  else{b.position.x+= (p[0]-b.position.x)*k;b.position.y+=(p[1]-b.position.y)*k;b.position.z+=(p[2]-b.position.z)*k;const cq=new T3.Quaternion(b.quaternion.x,b.quaternion.y,b.quaternion.z,b.quaternion.w).slerp(q,k);b.quaternion.set(cq.x,cq.y,cq.z,cq.w);b.velocity.scale(1-k,b.velocity);b.angularVelocity.scale(1-k,b.angularVelocity)}}}
+const _qa=[0,0,0,0];
+function qmulA(a,b){return[a[3]*b[0]+a[0]*b[3]+a[1]*b[2]-a[2]*b[1],a[3]*b[1]-a[0]*b[2]+a[1]*b[3]+a[2]*b[0],a[3]*b[2]+a[0]*b[1]-a[1]*b[0]+a[2]*b[3],a[3]*b[3]-a[0]*b[0]-a[1]*b[1]-a[2]*b[2]]}
+const qinvA=q=>[-q[0],-q[1],-q[2],q[3]],qA=q=>[q.x,q.y,q.z,q.w];
+function qrotA(q,v){const t=qmulA(qmulA(q,[v[0],v[1],v[2],0]),qinvA(q));return[t[0],t[1],t[2]]}
+// muskelmotorer: varje led styr sin vinkelhastighet mot målposen (stabilt även med hög styvhet), bäckenet hålls upp av "balansen".
+// tone: muskelstyrka 0..1 (per kroppsdel kan den sänkas, t.ex. huvudet direkt efter en träff); root: balans 0..1
+function ragDrive(R,h,TQ,TP,tone,root,dt,toneOf){
+  const tq={},W=[];for(const n of R.list)tq[n]=qA(TQ[R.M[n].bone]);
+  const steer=(b,wt,k)=>{b.angularVelocity.x+=(wt[0]-b.angularVelocity.x)*k;b.angularVelocity.y+=(wt[1]-b.angularVelocity.y)*k;b.angularVelocity.z+=(wt[2]-b.angularVelocity.z)*k};
+  const err=(qt,qc)=>{let e=qmulA(qt,qinvA(qc));if(e[3]<0)e=e.map(x=>-x);const s=Math.hypot(e[0],e[1],e[2]);if(s<1e-7)return[0,0,0];const a=2*Math.atan2(s,e[3]);return[e[0]/s*a,e[1]/s*a,e[2]/s*a]};
+  if(root>0){const pv=R.bodies.pelvis,m=R.M.pelvis,q=TQ[m.bone],tp=vadd(TP[m.bone],qrot(q,vsub(m.M,h.bh[m.bone]))),k=1-Math.exp(-dt*22*root);
+    const vt=[(tp[0]-pv.position.x)*14,(tp[1]-pv.position.y)*14,(tp[2]-pv.position.z)*14];
+    pv.velocity.x+=(vt[0]-pv.velocity.x)*k;pv.velocity.y+=(vt[1]-pv.velocity.y)*k+727*dt*root*.9;pv.velocity.z+=(vt[2]-pv.velocity.z)*k;
+    const e=err(tq.pelvis,qA(pv.quaternion));steer(pv,vmul(e,16),k)}
+  for(const n of R.list){const m=R.M[n];if(!m.par)continue;const b=R.bodies[n],pb=R.bodies[m.par];
+    const t=toneOf?toneOf(n,tone):tone;if(t<=.002)continue;
+    const qp=qA(pb.quaternion),qc=qA(b.quaternion),rel=qmulA(qinvA(qp),qc),relT=qmulA(qinvA(tq[m.par]),tq[n]);
+    const eL=err(relT,rel),eW=qrotA(qp,eL),wn=m.wn,k=1-Math.exp(-dt*wn*1.6*t);
+    const wt=[pb.angularVelocity.x+eW[0]*wn,pb.angularVelocity.y+eW[1]*wn,pb.angularVelocity.z+eW[2]*wn];steer(b,wt,k);
+    // linjär hastighet som passar rotationen runt leden (annars kämpar leden emot)
+    const pw=qrotA(qp,m.pivA),pivot=[pb.position.x+pw[0],pb.position.y+pw[1],pb.position.z+pw[2]],wp=[pb.angularVelocity.x,pb.angularVelocity.y,pb.angularVelocity.z];
+    const vp=vadd([pb.velocity.x,pb.velocity.y,pb.velocity.z],cross(wp,pw)),r=[b.position.x-pivot[0],b.position.y-pivot[1],b.position.z-pivot[2]],vt=vadd(vp,cross(wt,r));
+    b.velocity.x+=(vt[0]-b.velocity.x)*k;b.velocity.y+=(vt[1]-b.velocity.y)*k+727*dt*Math.min(1,t)*.95;b.velocity.z+=(vt[2]-b.velocity.z)*k}
+}
+
+// väggar vid repen så att en utslagen kropp stannar i ringen
+function ragWalls(w){const C=CANNON;for(const[nx,nz]of[[1,0],[-1,0],[0,1],[0,-1]]){const b=new C.Body({mass:0,shape:new C.Plane()});b.quaternion.setFromVectors(new C.Vec3(0,0,1),new C.Vec3(-nx,0,-nz));b.position.set(nx*(RB+4),0,nz*(RB+4));b.collisionFilterGroup=1;w.addBody(b)}}
+const RMAP={hips:'pelvis',spine:'abdomen',chest:'chest',head:'head','uarm.L':'uarmL','farm.L':'farmL','uarm.R':'uarmR','farm.R':'farmR','thigh.L':'thighL','shin.L':'shinL','foot.L':'footL','thigh.R':'thighR','shin.R':'shinR','foot.R':'footR'};
+function ragStep(R,tr){const now=game.t;let dt=R.pt==null?0:now-R.pt;R.pt=now;if(dt<0||dt>.2)dt=0;
+  for(const o of R.fighters){const rg=o.rag;if(!rg)continue;const f=o.f,h=o.hum,act=!(tr&&f.idx===1);rg.act=act;
+    if(!act){ragSnap(rg,h,h.TQ,h.TP,1);continue}
+    const pv=rg.bodies.pelvis.position,tp=h.TP[h.BI.hips];
+    if(!rg.init||(!f.down&&f.rising<=0&&Math.hypot(pv.x-tp[0],pv.y-tp[1],pv.z-tp[2])>48)){ragSnap(rg,h,h.TQ,h.TP,1);rg.init=true}
+    else if(f.rising>0)ragSnap(rg,h,h.TQ,h.TP,Math.min(1,.04+f.rising*.22));
+    if(f.rimp&&f.rimp.length){for(const r of f.rimp){const b=rg.bodies[r.part];if(b)b.applyImpulse(new CANNON.Vec3(r.d[0]*r.m,r.d[1]*r.m,r.d[2]*r.m))}f.rimp.length=0}}
+  if(dt<=0)return;const n=Math.min(8,Math.ceil(dt*120-1e-6)),sd=dt/n;
+  for(let k=0;k<n;k++){for(const o of R.fighters){const rg=o.rag;if(!rg||!rg.act)continue;const f=o.f;
+      const tone=f.down?.012:f.rising>0?.2+.8*f.rising:clamp(1-.45*Math.min(1,f.stun),.35,1),root=f.down?0:f.rising>0?f.rising:clamp(1-.3*Math.min(1,f.stun),.5,1);
+      ragDrive(rg,o.hum,o.hum.TQ,o.hum.TP,tone,root,sd,(nm,t)=>nm==='head'?t*(1-.6*f.headDip):nm==='abdomen'||nm==='chest'?t*(1-.35*Math.min(1,f.toneDip)):t)}
+    R.world.step(sd)}}
+function humanFromRag(o){const h=o.hum,R=o.rag,{BI,bh,bt,Q,par}=h,Pw=h.P,H=hq(),WQ=h.WQ||(h.WQ=h.bones.map(()=>new T3.Quaternion()));
+  h.bones.forEach((b,i)=>{const n=RMAP[b.name];if(n){const q=R.bodies[n].quaternion;WQ[i].set(q.x,q.y,q.z,q.w)}});
+  WQ[BI.neck].copy(WQ[BI.chest]).slerp(WQ[BI.head],.5);for(const s of'LR'){WQ[BI['clav.'+s]].copy(WQ[BI.chest]);WQ[BI['hand.'+s]].copy(WQ[BI['farm.'+s]])}
+  const pb=R.bodies.pelvis.position,m=R.M.pelvis,root=vsub([pb.x,pb.y,pb.z],qrot(WQ[BI.hips],vsub(m.M,bh[BI.hips])));
+  h.bones.forEach((b,i)=>{const p=par[i];Pw[i]=p<0?root:vadd(Pw[p],qrot(Q[p],vsub(bh[i],bh[p])));Q[i].copy(WQ[i]);if(p<0){b.position.set(root[0],root[1],root[2]);b.quaternion.copy(WQ[i])}else b.quaternion.copy(H.q2.copy(Q[p]).invert().multiply(WQ[i]))});
+  const leadS=o.f.stance===1?'R':'L',rest=i=>vsub(bt[i],bh[i]);
+  for(const s of'LR'){const lead=s===leadS,A=h.arm[lead?0:1],fa=BI['farm.'+s],hd=BI['hand.'+s];A.wr=Pw[hd];A.dir=vnorm(qrot(Q[fa],rest(fa)));
+    const L=h.leg[lead?0:1],sh=BI['shin.'+s],ft=BI['foot.'+s],rf=qrot(Q[ft],rest(ft));L.kn=Pw[sh];L.an=Pw[ft];L.toe=vadd(Pw[ft],rf);L.fd=vnorm([rf[0],0,rf[2]])}}
 function init3D(THREE){
   T3=THREE;const T=THREE;
   const gl=document.createElement('canvas');gl.style.cssText='position:absolute;left:0;top:0';cv.parentNode.insertBefore(gl,cv);
@@ -1851,6 +1940,7 @@ function init3D(THREE){
       h+=.35*g2(.5,.85,.18,.03)+.06*vnoise(u*64,v*64);return h},3.2);
   const skinN=nmapTex(128,(u,v)=>.6*vnoise(u*24,v*24)+.3*vnoise(u*64,v*64),1.6);
   const mk=(o)=>new T.MeshPhysicalMaterial(Object.assign({vertexColors:true,color:0xffffff,side:T.DoubleSide},o));
+  let RW=null;
   const fighters=F.map(f=>{
     const skin=mk({roughness:.5,clearcoat:.15,clearcoatRoughness:.4,sheen:.4,sheenColor:new T.Color(0xff9070),sheenRoughness:.6,normalMap:skinN,normalScale:new T.Vector2(.25,.25)});
     const torsoM=mk({roughness:.5,clearcoat:.15,clearcoatRoughness:.4,sheen:.4,sheenColor:new T.Color(0xff9070),sheenRoughness:.6,normalMap:torsoN,normalScale:new T.Vector2(.9,.9)});
@@ -1868,6 +1958,7 @@ function init3D(THREE){
     if(HUM){try{
       const hs=new T.MeshPhysicalMaterial({vertexColors:true,color:0xffffff,roughness:.55,clearcoat:.15,clearcoatRoughness:.4,sheen:.5,sheenColor:new T.Color(0xff8a6a),sheenRoughness:.55});
       o.hum=humanMesh(T,f.idx?'b':'a',hs);grp.add(o.hum.mesh);o.skin=o.torsoM=hs;o.xr=buildXray(T,o);
+      if(CANNON){if(!RW){RW=ragWorld();ragWalls(RW)}o.rag=ragBuild(RW,o.hum,f.idx?4:2)}
       for(const k of['torso','neck','head','nose'])o[k].mesh.visible=false;for(const k of['ears','delt','uarm','farm','shorts','thigh','shin'])o[k].forEach(g=>g.mesh.visible=false);
       o.brows.forEach(b=>b.visible=false);o.mouth.visible=false;o.eyes.forEach(e=>{e.w.scale.set(1,1,1)});
     }catch(e){console.error('människomodell av:',e);o.hum=null}}
@@ -1904,7 +1995,7 @@ function init3D(THREE){
   // spelets koordinater är vänsterhänta: spegla hela världen (och kameran) så att bilden matchar 2D-lagret
   const root=new T.Group();root.scale.x=-1;while(scene.children.length)root.add(scene.children[0]);scene.add(root);
   scene.traverse(o=>{o.frustumCulled=false});
-  R3={T,renderer,scene,cam,gl,fighters,bagG,chain,rt,post,pScene,pCam,w:0,h:0,key,scale:2,q:0};
+  R3={T,renderer,scene,cam,gl,fighters,bagG,chain,rt,post,pScene,pCam,w:0,h:0,key,scale:2,q:0,world:RW,pt:null};
   XSRC=gl;fit();
   // förkompilera röntgenmaterialen så att första dödliga slaget inte hackar
   try{for(const o of fighters)if(o.xr){o.xr.list.forEach(m=>m.visible=true);o.hum.mesh.material=o.xr.skin;o.xr.shock.visible=true}
@@ -2001,6 +2092,8 @@ function draw3(){
   const tr=game.mode==='train',R=R3;resize3();
   R.fighters[1].grp.visible=!tr;R.bagG.mesh.visible=R.chain.visible=tr;
   const fb=o=>o.hum?human3(o):fighter3(o);fb(R.fighters[0]);if(!tr)fb(R.fighters[1]);else bag3();
+  if(R.world)ragStep(R,tr);
+  for(const o of R.fighters)if(o.hum&&(o===R.fighters[0]||!tr)){if(o.rag&&R.world)humanFromRag(o);humanDress(o)}
   // svett: huden blir blankare ju tröttare och mer slagen boxaren är
   for(const o of R.fighters){const f=o.f,sw=clamp((1-f.stam/100)*.6+(game.round-1)*.15+(100-f.hp)/250,0,1);for(const m of[o.skin,o.torsoM]){m.clearcoat=.12+.85*sw;m.clearcoatRoughness=.42-.3*sw;m.roughness=.52-.18*sw}}
   let xa=0;for(const o of R.fighters)xa=Math.max(xa,xray3(o));R.post.uniforms.xr.value=xa;
@@ -2060,7 +2153,7 @@ fit();addEventListener('resize',fit);
 bounds();F[0].reset(250);F[1].reset(390);game.cam=320-W/2;
 requestAnimationFrame(frame);
 if(location.protocol.startsWith('http')){const hj=fetch('human.json').then(r=>r.ok?r.json():null).catch(()=>null),hb=fetch('human.bin').then(r=>r.ok?r.arrayBuffer():null).catch(()=>null);
-  Promise.all([import('./three.module.min.js'),hj,hb]).then(([m,j,b])=>{if(j&&b)HUM={j,b};try{init3D(m)}catch(e){console.error('3D av:',e);R3=null}}).catch(e=>console.warn('Three.js kunde inte laddas',e))}
+  Promise.all([import('./three.module.min.js'),hj,hb,import('./cannon-es.js').catch(()=>null)]).then(([m,j,b,c])=>{if(j&&b)HUM={j,b};if(c)CANNON=c;try{init3D(m)}catch(e){console.error('3D av:',e);R3=null}}).catch(e=>console.warn('Three.js kunde inte laddas',e))}
 })();
 </script>
 </body>
