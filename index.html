@@ -122,7 +122,7 @@ button{font-family:inherit;cursor:pointer}
   <div class="card" id="mainCard">
     <div>
       <h1>RINGSIDE<span>32</span></h1>
-      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V8</span></p>
+      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V9</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
       <button id="go" class="big">SNABB MATCH</button>
@@ -133,10 +133,10 @@ button{font-family:inherit;cursor:pointer}
     </div>
     <ul class="help">
       <li class="h">VÄNSTER TUMME</li>
-      <li><b>Dra ←→</b> gå framåt/bakåt · <b>dra ↑↓</b> cirkla runt motståndaren (kameran följer)</li><li><b>Dubbeltryck och håll</b> spaken = <b>luta</b>: ner duck, upp bakåt, åt sidan slip. Släpp för att gå igen.</li><li><b>Snabbt ryck</b> = väjning: <b>ner</b> duck, <b>upp</b> bakåt, <b>åt sidan</b> slip. Lyckad väjning = motståndaren tappar balansen och du får kontra.</li><li>Slip slår ut raka slag men du kan glida rakt in i en krok. Duck slår ut krokar men inte uppercuts.</li>
+      <li><b>Inom ringen</b> styr du hela överkroppen: mot motståndaren = luta in/duck, bort = luta bakåt, upp/ner = slip åt sidan. Ju längre du drar, desto mer.</li><li><b>Dra ut till yttre ringen</b> = gå: framåt/bakåt och upp/ner = cirkla runt motståndaren.</li><li><b>Snabbt ryck</b> = väjning: <b>ner</b> duck, <b>upp</b> bakåt, <b>åt sidan</b> slip. Lyckad väjning = motståndaren tappar balansen och du får kontra.</li><li>Slip slår ut raka slag men du kan glida rakt in i en krok. Duck slår ut krokar men inte uppercuts.</li>
       <li class="h">HÖGER TUMME – SLAGET FÖLJER DITT SVEP</li>
       <li><b>Upp</b> jabb/rak · <b>sidan→upp</b> krok · <b>ner→upp</b> uppercut · <b>upp→sväng åt sidan</b> overhand</li><li>Handen följer bågen i ditt svep, och tempot följer hur snabbt du sveper. Streckade pilar i svepytan visar rekommenderade svep, och det du gör just nu lyser gult.</li><li>Raka svep växlar automatiskt mellan vänster och höger hand.</li>
-      <li><b>Snabbare svep</b> = hårdare. <b>Bredare krok</b> = tyngre men långsammare.</li>
+      <li><b>Svepets fart = slagets kraft och tempo.</b> Långsamt svep = svagt, långsamt slag. Snabbt svep = hårt, snabbt slag. <b>Bredare krok</b> = tyngre men långsammare.</li>
       <li><b>Brant svep</b> siktar på näsan/tinningen · <b>snett svep</b> siktar på käken.</li>
       <li><b>Svep i nedre delen</b> av svepytan (eller när du duckar) = kroppsslag: rak = solar plexus · vänsterkrok = <b>levern</b> · högerkrok = revben.</li>
       <li><b>Kort ryck</b> upp och tillbaka = <b>FINT</b>. <b>Håll tummen still</b> = gard.</li>
@@ -543,7 +543,7 @@ class Fighter{
     if(wantBlock&&!this.wasBlock)this.blockStart=game.t;this.wasBlock=wantBlock;
     this.blocking=wantBlock&&!this.punch;
     if(!this.blocking)this.guard=Math.min(100,this.guard+dt*(this.guardBreakT>0?0:16));
-    let dk=c.duck?1:0,sw=c.sway&&!c.duck?1:0,sl=c.slip||0;this.dodgeCD-=dt;
+    let dk=c.duck?1:(c.duckV||0),sw=c.sway&&!c.duck?1:(c.swayV||0),sl=c.slip||0;this.dodgeCD-=dt;
     if(this.dodge){const dg=this.dodge;dg.t-=dt;const k=dg.t>.12?1.15:.6;if(dg.type==='duck')dk=k;else if(dg.type==='sway')sw=k;else sl=dg.dir*Math.min(1,k);if(dg.t<=0)this.dodge=null}
     if(!act||cl){dk=sw=sl=0}
     const rr=Math.min(1,dt*22);this.duckA+=(dk-this.duckA)*rr;this.swayA+=(sw-this.swayA)*rr;this.slipA+=(sl-this.slipA)*rr;
@@ -1118,7 +1118,7 @@ function playerThrow(type,hand,mods){
   const dl=game.mode==='match'&&f.stun>.7?f.stun*.12:0;
   if(dl>0)f.inQ.push({type,hand,body,hay,mods,at:game.t+dl});else f.throw(type,hand,body,hay,mods);
   if(mods.feint)pop('FINT','#c9a0ff',.86);
-  else pop(NAMES[type][hand]+(body?' · KROPP':'')+(hay?' · HAYMAKER':c>.2?' · '+Math.round(c*100)+'%':''),hay?'#ff9a3a':'#ffd84a',.86);
+  else{const pw=mods.pow||1,tag=hay?' · HAYMAKER':pw<.7?' · SVAG':pw>1.15?' · HÅRD':'';pop(NAMES[type][hand]+(body?' · KROPP':'')+tag+' '+Math.round(pw*100)+'%',hay||pw>1.15?'#ff9a3a':pw<.7?'#9fb8d0':'#ffd84a',.86)}
 }
 // svepet styr slaget: hastighet = kraft & tempo, bågen i svepet = handens bana i 3D, vinkel = träffhöjd
 function swipeMods(type){
@@ -1132,7 +1132,7 @@ function swipeMods(type){
   const tot=acc[acc.length-1]||1,zdev=[];
   for(let q=0;q<8;q++){const tgt=q/7*tot;let i=1;while(i<acc.length-1&&acc[i]<tgt)i++;const a=pts[i-1],b=pts[i],t=clamp((tgt-acc[i-1])/((acc[i]-acc[i-1])||1),0,1),px=lerp(a.x,b.x,t)-P0.x,py=lerp(a.y,b.y,t)-P0.y;zdev.push(clamp((px*nx+py*ny)/cl,-.5,.5))}
   const T=(now-RS.st)/1000;
-  const m={pow:clamp(.84+(speed-5)*.028,.84,1.22),wind:1,wz:20,aimDy:0,dip:0,zdev,stS:clamp(T/.11,.8,1.35)};
+  const m={pow:clamp(.42+(speed-2.5)*.075,.42,1.38),wind:clamp(1.25-speed*.025,.9,1.2),wz:20,aimDy:0,dip:0,zdev,stS:clamp(1.6-speed*.06,.75,1.45)};
   if(type==='straight')m.aimDy=ang<.38?0:-6;
   else if(type==='hook'){const w=clamp(Math.abs(side)-.5,0,1);m.wz=14+w*14;m.pow*=1+w*.08;m.wind=1+w*.12;m.aimDy=ang>1.05?-6:3}
   else if(type==='over'){m.aimDy=5;m.wz=18}
@@ -1169,17 +1169,21 @@ function evadeCheck(a,b,pu,g){
 }
 function playerCtrl(){
   const f=F[0],c=f.ctrl;let mx=0,dn=false,up=false;
-  let circ=0,slp=0;
-  if(LS.id!==null){const r=RAD(),dx=(LS.x-LS.ox)/r,dy=(LS.y-LS.oy)/r;
-    if(LS.lean){dn=dy>.4;up=dy<-.4;slp=Math.abs(dx)>.4?Math.sign(dx):0}
-    else{mx=Math.abs(dx)>.22?clamp(dx,-1,1):0;circ=Math.abs(dy)>.3?clamp(-dy*1.2,-1,1):0}}
+  let circ=0,slp=0,dV=0,sV=0;
+  if(LS.id!==null){const r=RAD();let dx=(LS.x-LS.ox)/r,dy=(LS.y-LS.oy)/r;const d=Math.hypot(dx,dy);
+    // riktning mot motståndaren på skärmen
+    const me=P3(f.p[3].x,f.p[3].y,0),op=P3(f.opp.p[3].x,f.opp.p[3].y,0),sdir=me&&op?(op[0]>=me[0]?1:-1):f.face;
+    if(d>1.15){const nx=dx/d,ny=dy/d,k=Math.min(1,(d-1.15)/.35+.4);mx=nx*k;circ=clamp(-ny*1.2,-1,1)*k;dx=nx*.45;dy=ny*.45}
+    else{dx=clamp(dx,-1,1);dy=clamp(dy,-1,1)}
+    const lx=dx*sdir,dz=Math.max(0,Math.abs(lx)-.12)/.88*Math.sign(lx),dzy=Math.max(0,Math.abs(dy)-.12)/.88*Math.sign(dy);
+    dV=Math.max(0,dz)*1.1;sV=Math.max(0,-dz)*1.1;slp=-dzy}
   if(keys.KeyA||keys.ArrowLeft)mx=-1;if(keys.KeyD||keys.ArrowRight)mx=1;if(keys.KeyS||keys.ArrowDown)dn=true;if(keys.KeyW||keys.ArrowUp)up=true;
   if(game.mode==='match'&&f.stun>.7)mx=clamp(mx+Math.sin(game.t*2.3)*.6*(f.stun-.6),-1,1);
-  c.move=mx;c.duck=dn;c.sway=up;c.slip=slp||(keys.KeyZ?-1:keys.KeyX?1:0);c.circle=circ;c.block=input.block||!!keys.KeyL;input.duck=dn||RS.low;
+  c.move=mx;c.duck=dn;c.sway=up;c.duckV=dV;c.swayV=sV;c.slip=slp||(keys.KeyZ?-1:keys.KeyX?1:0);c.circle=circ;c.block=input.block||!!keys.KeyL;input.duck=dn||dV>.55||RS.low;
 }
 ctl.addEventListener('pointerdown',e=>{
   e.preventDefault();audioInit();mash();
-  if(e.clientX<innerWidth*.45){if(LS.id===null){const n=performance.now();LS.lean=n-(LS.lastUp||-9)<320&&Math.hypot(e.clientX-(LS.ux||0),e.clientY-(LS.uy||0))<90;LS.id=e.pointerId;LS.ox=LS.x=e.clientX;LS.oy=LS.y=e.clientY;LS.t0=n;LS.maxD=0;LS.mx=0;LS.my=0;if(LS.lean)vib(15)}}
+  if(e.clientX<innerWidth*.45){if(LS.id===null){const n=performance.now();LS.lean=false;LS.id=e.pointerId;LS.ox=LS.x=e.clientX;LS.oy=LS.y=e.clientY;LS.t0=n;LS.maxD=0;LS.mx=0;LS.my=0;if(LS.lean)vib(15)}}
   else if(RS.id===null){const n=performance.now();RS.low=e.clientY>innerHeight*.66;Object.assign(RS,{id:e.pointerId,ox:e.clientX,oy:e.clientY,x:e.clientX,y:e.clientY,pts:[{x:0,y:0,t:n}],armed:true,t0:n,lastMove:n,moved:false,maxD:0,minY:0,st:n})}
   try{ctl.setPointerCapture(e.pointerId)}catch(_){}
 },{passive:false});
@@ -1294,9 +1298,10 @@ function drawUI(rdt){
   const r=RAD();
   let ox,oy,kx,ky;
   if(LS.id!==null){ox=LS.ox;oy=LS.oy;const dx=LS.x-ox,dy=LS.y-oy,l=Math.hypot(dx,dy),m=Math.min(l,r);kx=ox+(l?dx/l*m:0);ky=oy+(l?dy/l*m:0);c.globalAlpha=.85}
-  else{ox=kx=iw*.13;oy=ky=ih*.72;c.globalAlpha=.25}
-  ringUI(c,ox,oy,r,LS.lean?'#7fc8ff':'#fff');circ(c,kx,ky,r*.42,LS.lean?'rgba(127,200,255,.5)':'rgba(255,255,255,.35)');
-  if(LS.lean)txt(c,'LUTA',ox,oy-r-12,9,'#7fc8ff');else if(LS.id===null){txt(c,'GÅ ←→  CIRKLA ↑↓',ox,oy+r+20,8,'#fff');c.globalAlpha*=.8;txt(c,'DUBBELTRYCK+HÅLL = LUTA',ox,oy+r+36,6,'#7fc8ff')}
+  else{ox=kx=iw*.16;oy=ky=ih*.66;c.globalAlpha=.3}
+  ringUI(c,ox,oy,r,'#7fc8ff');c.save();c.setLineDash([5,7]);ringUI(c,ox,oy,r*1.5,'rgba(255,255,255,.7)');c.restore();
+  if(LS.id!==null){const dd=Math.hypot(LS.x-ox,LS.y-oy)/r,m=Math.min(dd,1.5),a=Math.atan2(LS.y-oy,LS.x-ox);kx=ox+Math.cos(a)*m*r;ky=oy+Math.sin(a)*m*r;circ(c,kx,ky,r*.4,dd>1.15?'rgba(255,255,255,.55)':'rgba(127,200,255,.55)');txt(c,dd>1.15?'GÅR':'ÖVERKROPP',ox,oy-r*1.5-10,8,dd>1.15?'#fff':'#7fc8ff')}
+  else{circ(c,kx,ky,r*.4,'rgba(127,200,255,.35)');txt(c,'ÖVERKROPP',ox,oy+8,7,'#7fc8ff');txt(c,'YTTRE RING = GÅ',ox,oy+r*1.5+16,7,'#fff')}
   if(RS.id!==null){
     drawGuides(c,RS.ox,RS.oy,r,previewKey(),.5);
     c.globalAlpha=.85;ringUI(c,RS.ox,RS.oy,r,input.block?'#9fd0ff':'#ffd84a');
