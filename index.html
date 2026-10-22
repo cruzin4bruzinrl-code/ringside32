@@ -126,7 +126,7 @@ button{font-family:inherit;cursor:pointer}
   <div class="card" id="mainCard">
     <div>
       <h1>RINGSIDE<span>32</span></h1>
-      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V29</span></p>
+      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V30</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
       <button id="go" class="big">SNABB MATCH</button>
@@ -266,7 +266,7 @@ const SFX={
 };
 
 // ---------- 3D-kamera (look-at, zoombar) ----------
-const RB=250,FOC=300,NEAR=14,YAW=-.24,BASE_D=190,BASE_P=.08,BASE_Y=96;
+const RB=250,FOC=300,NEAR=14,YAW=-.24,BASE_D=200,BASE_P=.08,BASE_Y=104;
 const HC=GROUND+(-150*Math.cos(BASE_P)+300*Math.sin(BASE_P))*300/(300*Math.cos(BASE_P)+150*Math.sin(BASE_P));
 const AR={mx:0,mz:0,th:0,anim:null};
 const CAM={th:YAW,px:0,py:0,pz:0,R:[1,0,0],U:[0,1,0],F:[0,0,1],T:[0,0,0],dist:BASE_D};
@@ -463,7 +463,7 @@ class Fighter{
     const bounce=Math.sin(t*4.4+this.seed),bob=bounce*(this.stun>.5?.6:1.2)+Math.abs(Math.sin(this.walkPh))*1.2*Math.max(mv,mvW);
     const sl=this.slipA;
     const dd=Math.min(d,1.05),ss=Math.min(s,1.05);
-    let spA=.12+.46*dd-.36*ss+.1*Math.abs(sl),upA=.2+.5*dd-.42*ss,nkA=.3+.18*dd-.25*ss,px=-7*dd-6*ss+1.5*Math.abs(sl)+Math.sin(t*2.2+this.seed)*1.1,py=57-13*dd+bob-4*Math.abs(sl),tw=0;
+    let spA=.12+.46*dd-.36*ss+.1*Math.abs(sl),upA=.2+.5*dd-.42*ss,nkA=.3+.18*dd-.25*ss,px=-7*dd-6*ss+1.5*Math.abs(sl)+Math.sin(t*2.2+this.seed)*1.1,py=52-13*dd+bob-4*Math.abs(sl),tw=0;
     if(cl){spA+=.28;upA+=.2}
     // koreografi: varje led når sitt läge i tur och ordning (ben/höft först, sedan bål och sist armen)
     let rot=ROT0+.06*Math.sin(t*1.7+this.seed),hipR=ROT0*.7,heel=0,knee=0;
@@ -475,9 +475,9 @@ class Fighter{
     let hop=0;if(this.sideT>0){const k=1-this.sideT/.45;hop=Math.sin(k*Math.PI);py+=hop*5-2;spA+=.08*hop}
     if(this.stun>.15){upA+=Math.sin(t*5.3+this.seed)*this.stun*.12;nkA+=Math.sin(t*4.1)*this.stun*.35}
     const pel={x:px,y:py},
-      che={x:pel.x+Math.sin(spA)*28,y:pel.y+Math.cos(spA)*28},
-      nek={x:che.x+Math.sin(upA)*18,y:che.y+Math.cos(upA)*18},
-      hed={x:nek.x+Math.sin(nkA)*14.3,y:nek.y+Math.cos(nkA)*14.3};
+      che={x:pel.x+Math.sin(spA)*36,y:pel.y+Math.cos(spA)*36},
+      nek={x:che.x+Math.sin(upA)*24,y:che.y+Math.cos(upA)*24},
+      hed={x:nek.x+Math.sin(nkA)*16,y:nek.y+Math.cos(nkA)*16};
     const st=Math.min(1,this.stun*.8);let gF,gN;
     if(cl){const od=Math.abs(this.opp.root.x-this.root.x);gF={x:od+1,y:hed.y-22};gN={x:od-3,y:hed.y-31}}
     else if(this.blocking){if(d>.5){gF={x:hed.x+12,y:hed.y-15};gN={x:hed.x+10,y:hed.y-24}}else{gF={x:hed.x+11,y:hed.y-1};gN={x:hed.x+9,y:hed.y-6}}}
@@ -1716,6 +1716,24 @@ function stylMesh(T,key,mat){
   const eyes=[-1,1].map(sx=>{const c=vadd(hc(.56),[sx*hl*.2,0,hl*.71]);return[c[0],c[1],c[2],.01]});
   return{mesh,bones,bh,bt,BI,par:J.parent,ra,reg,sh:null,eyes,Q:bones.map(()=>new T.Quaternion()),P:bones.map(()=>[0,0,0]),look:null,arm:[{},{}],leg:[{},{}],styl:true};
 }
+// ---------- din low poly-boxare (boxer_lowpoly.obj + texturer), riggad till spelets skelett ----------
+// Modellen är byggd av stela delar; varje del följer ett ben (huvud, bål, över-/underarm med handske, lår, smalben, känga).
+let BOX=null;const BXS=62;const BTEX={};
+function boxerMesh(T,blue){
+  const J=BOX,BI={};J.bones.forEach((n,i)=>BI[n]=i);const bh=J.rest.map(r=>r[0].map(x=>x*BXS)),bt=J.rest.map(r=>r[1].map(x=>x*BXS));
+  const n=J.bi.length,g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(J.pos.map(x=>x*BXS),3));g.setAttribute('uv',new T.Float32BufferAttribute(J.uv,2));
+  const si=new Uint16Array(n*4),sw=new Float32Array(n*4);for(let i=0;i<n;i++){si[i*4]=J.bi[i];sw[i*4]=1}g.setAttribute('skinIndex',new T.BufferAttribute(si,4));g.setAttribute('skinWeight',new T.BufferAttribute(sw,4));
+  g.computeVertexNormals();for(const[s,c,m]of J.groups)g.addGroup(s,c,m);
+  const tex=f=>{if(!BTEX[f]){const t=new T.TextureLoader().load('tex/'+f+'.png');t.colorSpace=T.SRGBColorSpace;t.magFilter=T.NearestFilter;BTEX[f]=t}return BTEX[f]};
+  const file={skin:'skin_warm',shorts_red:blue?'shorts_blue':'shorts_red',gloves_red:blue?'shorts_blue':'gloves_red',boots_white:'boots_white',hair_dark:'hair_dark',wrap_white:'wrap_white'};
+  const mats=J.mats.map(m=>new T.MeshStandardMaterial({map:tex(file[m]),flatShading:true,roughness:m==='gloves_red'?.35:.7,side:T.DoubleSide}));
+  const bones=J.bones.map(nm=>{const b=new T.Bone();b.name=nm;return b});
+  J.parent.forEach((p,i)=>{const h=bh[i];if(p<0)bones[i].position.set(h[0],h[1],h[2]);else{const q=bh[p];bones[i].position.set(h[0]-q[0],h[1]-q[1],h[2]-q[2]);bones[p].add(bones[i])}});
+  const mesh=new T.SkinnedMesh(g,mats);mesh.add(bones[0]);mesh.updateMatrixWorld(true);mesh.bind(new T.Skeleton(bones));mesh.castShadow=mesh.receiveShadow=true;mesh.frustumCulled=false;
+  const ra={};for(const s of'LR'){const A=bh[BI['uarm.'+s]],E=bh[BI['farm.'+s]],Wr=bt[BI['farm.'+s]],u=vnorm(vsub(Wr,A)),d=vsub(E,A);ra[s]=vnorm(vsub(d,vmul(u,vdot(d,u))))}
+  return{mesh,bones,bh,bt,BI,par:J.parent,ra,reg:null,sh:null,eyes:[[0,0,0,.01],[0,0,0,.01]],Q:bones.map(()=>new T.Quaternion()),P:bones.map(()=>[0,0,0]),look:null,arm:[{},{}],leg:[{},{}],styl:true,model:true,mats,
+    gloveOff:7,clip:{sp:[.9,.62],ch:[1.12,.76],hc:.42,hr:.42}};
+}
 function hq(){if(!HQ){const T=T3;HQ={m1:new T.Matrix4(),m2:new T.Matrix4(),m3:new T.Matrix4(),q:new T.Quaternion(),q2:new T.Quaternion(),v:new T.Vector3(),s:new T.Vector3()}}return HQ}
 function qrot(q,a){const v=hq().v.set(a[0],a[1],a[2]).applyQuaternion(q);return[v.x,v.y,v.z]}
 // rotation som för vilo-ramen (riktning + hjälpvektor) till världsramen
@@ -1729,8 +1747,8 @@ function ik3(S,Tg,L1,L2,pole,fb){let d=vsub(Tg,S),dl=Math.hypot(d[0],d[1],d[2])|
 
 // kollisionsformer för en kropp: bål (två elliptiska cylindrar) och huvud (klot) – används så att armar/handskar inte går igenom kroppar
 function clipShapes(h){const{BI,bh,bt,Q}=h,P=h.P,sw=h.sw||(h.sw=Math.abs(bh[BI['uarm.L']][0]));const sh=[];
-  const st=h.styl;for(const[bn,rx,rz]of st?[['spine',.78,.62],['chest',1.16,.82]]:[['spine',.6,.45],['chest',.72,.5]]){const i=BI[bn];sh.push({a:P[i],b:vadd(P[i],qrot(Q[i],vsub(bt[i],bh[i]))),X:qrot(Q[i],[1,0,0]),Z:qrot(Q[i],[0,0,1]),rx:rx*sw,rz:rz*sw})}
-  const hi=BI.head,hd=qrot(Q[hi],vsub(bt[hi],bh[hi]));return{sh,hc:vadd(P[hi],vmul(hd,st?.5:.46)),hr:Math.hypot(...hd)*(st?.62:.4)}}
+  const st=h.styl,cl=h.clip;for(const[bn,rx,rz]of cl?[['spine',...cl.sp],['chest',...cl.ch]]:st?[['spine',.78,.62],['chest',1.16,.82]]:[['spine',.6,.45],['chest',.72,.5]]){const i=BI[bn];sh.push({a:P[i],b:vadd(P[i],qrot(Q[i],vsub(bt[i],bh[i]))),X:qrot(Q[i],[1,0,0]),Z:qrot(Q[i],[0,0,1]),rx:rx*sw,rz:rz*sw})}
+  const hi=BI.head,hd=qrot(Q[hi],vsub(bt[hi],bh[hi]));return{sh,hc:vadd(P[hi],vmul(hd,cl?cl.hc:st?.5:.46)),hr:Math.hypot(...hd)*(cl?cl.hr:st?.62:.4)}}
 function pushOut(p,S,r){
   for(const c of S.sh){const ab=vsub(c.b,c.a),L2=vdot(ab,ab)||1,t=vdot(vsub(p,c.a),ab)/L2;if(t<-.15||t>1.15)continue;const an=vnorm(ab),base=vadd(c.a,vmul(ab,clamp(t,0,1))),d=vsub(p,base),x=vdot(d,c.X),z=vdot(d,c.Z),ax=c.rx+r,az=c.rz+r,e=Math.hypot(x/ax,z/az);
     if(e<1){const nx=e>1e-3?x/e:0,nz=e>1e-3?z/e:az;p=vadd(base,vadd(vadd(vmul(c.X,nx),vmul(c.Z,nz)),vmul(an,vdot(d,an))))}}
@@ -1741,7 +1759,7 @@ function human3(o){
   const rot=f.rot??ROT0,hipR=f.hipR??ROT0*.7,Pel=W3(3),Che=W3(2),Nek=W3(1),Hed=W3(0);
   for(const r of f.rip)r.w=ripWorld(f,r);
   const{BI,bh,bt,Q,par}=h,Pw=h.P,rest=i=>vsub(bt[i],bh[i]),len=i=>Math.hypot(...rest(i));
-  if(h.look!==f.look){h.look=f.look;const lk=f.look,sk=lin(lk.skin),C=[sk,lin(lk.trunk),lin(lk.band),lin(lk.hair||hx(lk.skin,.8)),lin(lk.beard||hx(lk.skin,.85)),lin(hx(lk.skin,.74))];
+  if(h.look!==f.look&&h.reg){h.look=f.look;const lk=f.look,sk=lin(lk.skin),C=[sk,lin(lk.trunk),lin(lk.band),lin(lk.hair||hx(lk.skin,.8)),lin(lk.beard||hx(lk.skin,.85)),lin(hx(lk.skin,.74))];
     C[5]=[C[5][0]*1.08,C[5][1]*.82,C[5][2]*.82];C[6]=lin('#1c1210');C[7]=lin('#f2f0ea');const a=h.mesh.geometry.attributes.color,si=h.mesh.geometry.attributes.skinIndex,sw=h.mesh.geometry.attributes.skinWeight,hb=h.BI.head,nb=h.BI.neck;for(let i=0;i<h.reg.length;i++){const top=si.getX(i),hw=(top===hb||top===nb)?sw.getX(i):0,c=C[h.reg[i]],k=h.sh?1-(1-h.sh[i]/255)*(1-hw):1,kr=k,kb=k*k*.85+.15*k;a.array[i*3]=c[0]*kr;a.array[i*3+1]=c[1]*(k*.94+.06*kb);a.array[i*3+2]=c[2]*kb}a.needsUpdate=true}
   const put=(i,q)=>{const p=par[i];Pw[i]=p<0?Pel.slice():vadd(Pw[p],qrot(Q[p],vsub(bh[i],bh[p])));Q[i].copy(q);const b=h.bones[i];
     if(p<0){b.position.set(Pw[i][0],Pw[i][1],Pw[i][2]);b.quaternion.copy(q)}else b.quaternion.copy(H.q2.copy(Q[p]).invert().multiply(q))};
@@ -1755,7 +1773,7 @@ function human3(o){
   const leadS=f.stance===1?'R':'L';
   for(const s of'LR'){const lead=s===leadS,ai=lead?0:1,cl=BI['clav.'+s],ua=BI['uarm.'+s],fa=BI['farm.'+s],hd=BI['hand.'+s];
     put(cl,Q[BI.chest]);const S=vadd(Pw[cl],qrot(Q[cl],vsub(bh[ua],bh[cl])));
-    const L1=len(ua),L2=len(fa)+4.2,fbp=vadd(vmul(Fr(rot),-.6),[0,-1,0]),own=clipShapes(h),op=R3&&R3.fighters.find(q=>q!==o&&q.hum&&q.grp.visible&&!q.f.down);
+    const L1=len(ua),L2=len(fa)+(h.gloveOff||4.2),fbp=vadd(vmul(Fr(rot),-.6),[0,-1,0]),own=clipShapes(h),op=R3&&R3.fighters.find(q=>q!==o&&q.hum&&q.grp.visible&&!q.f.down);
     const AR2=h.styl?1.5:1;let Tg=W3(lead?5:7),pole=W3(lead?4:6);Tg=pushOut(Tg,own,6.8*AR2*.85);if(op&&op.hum.P[0])Tg=pushOut(Tg,clipShapes(op.hum),6.8);
     let k=ik3(S,Tg,L1,L2,pole,fbp);const E2=pushOut(k.E,own,3.4*AR2);if(vdist(E2,k.E)>.05){pole=vadd(E2,vsub(E2,vlerp(S,k.T,.5)));k=ik3(S,Tg,L1,L2,pole,fbp)}
     for(let it=0;it<2;it++){const mid=vlerp(k.E,k.T,.5),m2=pushOut(mid,own,3.2*AR2);if(vdist(m2,mid)>.05){Tg=vadd(k.T,vsub(m2,mid));k=ik3(S,Tg,L1,L2,pole,fbp)}}
@@ -1779,7 +1797,8 @@ function humanDress(o){
     const ic=vadd(c,vmul(fwd,r*.62)),shut=f.down||f.stun>1.1||f.swell[i]>2.2;M.compose(H.v.set(ic[0],ic[1],ic[2]),hqq,H.s.set(r*.5,r*.5,r*.42));E.i.matrix.copy(M);E.i.matrixWorldNeedsUpdate=true;E.i.visible=!shut});
   // handskar och kängor på modellens händer och fötter
   const lk=f.look,GL=lin(lk.glove),GT=lin(hx(lk.glove,.62)),WH=lin('#efe9dc'),fwW=fw;
-  h.arm.forEach((A,i)=>{const wr=vsub(A.wr,vmul(A.dir,1.2)),gb=vadd(wr,vmul(A.dir,10.8));
+  for(const k of['glove','thumb','bootG','foot'])o[k].forEach(g=>g.mesh.visible=!h.model);o.eyes.forEach(e=>{e.w.visible=!h.model;if(h.model)e.i.visible=false});
+  if(!h.model)h.arm.forEach((A,i)=>{const wr=vsub(A.wr,vmul(A.dir,1.2)),gb=vadd(wr,vmul(A.dir,10.8));
     loft3(o.glove[i],wr,gb,[[0,4.3],[.12,4.4],[.2,5.5],[.34,6.4,.1],[.48,6.8,.14],[.64,7,.12],[.78,7,.1],[.9,6.2],[.96,5],[1,3]],fwW,r=>r<=1?WH:r===2?GT:GL);
     const wu=[0,1,0],tv=vnorm(vsub(wu,vmul(A.dir,vdot(wu,A.dir)))),cr=vnorm(cross(A.dir,tv));
     ell3(o.thumb[i],vadd(vlerp(wr,gb,.44),vadd(vmul(tv,4.5),vmul(cr,(i?3.2:-3.2)))),vmul(tv,2.4),vmul(A.dir,3.7),vmul(cr,2.4),null,()=>GL)});
@@ -1789,7 +1808,7 @@ function humanDress(o){
     if(!h.styl)['L','R'].forEach(s=>{const lead=s===leadS,i=lead?0:1,th=BI['thigh.'+s],hip=Pw[th],kn=Pw[BI['shin.'+s]],top=vadd(vadd(hip,vmul(UPh,7.5)),vmul(Xh,s==='L'?-1.2:1.2)),bot=vlerp(hip,kn,.56),out=vmul(Xh,s==='L'?1:-1);
       loft3(o.shorts[i],top,bot,[[0,8.6],[.25,9.2],[.6,9.3],[.85,9],[1,8.7]],null,(r,ss,d)=>r===0?BND:vdot(d,out)>.94?BND:r>=6?TD:TRK)})}
   const lum=(()=>{const n=parseInt(lk.boot.slice(1),16);return((n>>16)+(n>>8&255)+(n&255))/3})(),LACE=lin(lum>128?'#8a8a90':'#dcdce0'),SOLE=lin(lum>128?'#3a3a40':'#ececee'),BT=lin(lk.boot);
-  const WH2=lin('#f2f0ea');h.leg.forEach((L,i)=>{const top=vlerp(L.an,L.kn,.36),an=vadd(L.an,[0,-.6,0]);
+  const WH2=lin('#f2f0ea');if(!h.model)h.leg.forEach((L,i)=>{const top=vlerp(L.an,L.kn,.36),an=vadd(L.an,[0,-.6,0]);
     loft3(o.bootG[i],vlerp(L.an,L.kn,.5),an,[[0,3.9],[.12,4.2],[.5,4.1],[1,4.2]],null,(r,ss,d)=>r===0||r>=G3R(o.bootG[i])-2?WH2:vdot(d,L.fd)>.72?LACE:BT);
     const heel=vadd(vsub(L.an,vmul(L.fd,3.2)),[0,-3.6,0]),toe=[L.toe[0],L.toe[1]+.4,L.toe[2]];
     loft3(o.foot[i],heel,vadd(toe,vmul(L.fd,1)),[[0,3.4],[.3,3.7],[.8,3.3],[1,2.2]],null,(r,ss,d)=>d[1]<-.35?SOLE:BT)});
@@ -2044,7 +2063,7 @@ function init3D(THREE){
     o.mouth=new T.Mesh(new T.BoxGeometry(1,1,1),dark);o.mouth.matrixAutoUpdate=false;grp.add(o.mouth);
     if(HUM){try{
       const hs=new T.MeshStandardMaterial({vertexColors:true,color:0xffffff,roughness:.62,flatShading:true,side:T.DoubleSide});
-      o.hum=stylMesh(T,f.idx?'b':'a',hs);grp.add(o.hum.mesh);o.skin=o.torsoM=hs;o.xr=buildXray(T,o);
+      o.hum=BOX?boxerMesh(T,f.idx===1):stylMesh(T,f.idx?'b':'a',hs);grp.add(o.hum.mesh);o.skin=o.torsoM=o.hum.mats||hs;o.xr=buildXray(T,o);
       {const h=o.hum,hi=h.BI.head,H0=h.bh[hi],H1=h.bt[hi],hh=Math.hypot(...vsub(H1,H0)),g=new T.SphereGeometry(1,9,6,0,Math.PI*2,0,Math.PI*.56),pa=g.attributes.position;
         for(let i=0;i<pa.count;i++){const x=pa.getX(i),y=pa.getY(i),z=pa.getZ(i),n=1+.1*Math.sin(x*9+z*7)*Math.sin(y*11+x*5)+.06*Math.sin(z*17);pa.setXYZ(i,x*n,y*n,z*n)}g.computeVertexNormals();
         const hair=new T.Mesh(g,new T.MeshStandardMaterial({color:0x3b2416,roughness:.8,flatShading:true}));const c=vadd(vlerp(H0,H1,.5),[0,hh*.03,-hh*.06]);hair.position.set(c[0]-H0[0],c[1]-H0[1],c[2]-H0[2]);hair.scale.set(hh*.47,hh*.5,hh*.55);hair.rotation.x=-.42;hair.castShadow=true;h.bones[hi].add(hair);o.hair=hair}
@@ -2240,7 +2259,8 @@ fit();addEventListener('resize',fit);
 bounds();F[0].reset(250);F[1].reset(390);game.cam=320-W/2;
 requestAnimationFrame(frame);
 if(location.protocol.startsWith('http')){const hj=fetch('human.json').then(r=>r.ok?r.json():null).catch(()=>null),hb=fetch('human.bin').then(r=>r.ok?r.arrayBuffer():null).catch(()=>null);
-  Promise.all([import('./three.module.min.js'),hj,hb,import('./cannon-es.js').catch(()=>null)]).then(([m,j,b,c])=>{if(j&&b)HUM={j,b};if(c)CANNON=c;try{init3D(m)}catch(e){console.error('3D av:',e);R3=null}}).catch(e=>console.warn('Three.js kunde inte laddas',e))}
+  const bx=fetch('boxer.json').then(r=>r.ok?r.json():null).catch(()=>null);
+  Promise.all([import('./three.module.min.js'),hj,hb,import('./cannon-es.js').catch(()=>null),bx]).then(([m,j,b,c,x])=>{if(j&&b)HUM={j,b};if(c)CANNON=c;if(x)BOX=x;try{init3D(m)}catch(e){console.error('3D av:',e);R3=null}}).catch(e=>console.warn('Three.js kunde inte laddas',e))}
 })();
 </script>
 </body>
