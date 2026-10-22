@@ -97,8 +97,9 @@ button{font-family:inherit;cursor:pointer}
 .srow button:disabled{opacity:.3}
 .cres{font-size:8px;line-height:1.8;margin:8px 0;color:#fff}
 .cnote{font-size:6.5px;color:#aaa;line-height:1.7;margin:6px 0 12px}
-#crt{position:absolute;inset:0;pointer-events:none;z-index:8;background:repeating-linear-gradient(to bottom,rgba(0,0,0,.16) 0 1px,transparent 1px 3px),radial-gradient(ellipse at center,transparent 58%,rgba(0,0,0,.55) 100%);mix-blend-mode:multiply;animation:crtf .12s steps(2) infinite}
-#crt::after{content:'';position:absolute;inset:0;background:linear-gradient(rgba(255,255,255,.025),transparent 40%,rgba(255,255,255,.02));}
+#crt{position:fixed;inset:0;pointer-events:none;z-index:9999;border-radius:6vh/8vh;box-shadow:inset 0 0 0 2.2vh #0b0a0c,inset 0 0 0 2.8vh #1d1b20,inset 0 0 6vh 3.5vh rgba(0,0,0,.9),inset 0 0 18vh rgba(0,0,0,.55);background:repeating-linear-gradient(to bottom,rgba(0,0,0,.18) 0 1px,transparent 1px 3px),radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.5) 100%);animation:crtf .12s steps(2) infinite}
+#tvframe{position:fixed;inset:0;pointer-events:none;z-index:10000;border:1.6vh solid #121014;border-radius:7vh/9vh;box-shadow:0 0 0 40vh #121014}
+#crt::after{content:'';position:absolute;inset:0;border-radius:inherit;background:radial-gradient(ellipse 70% 45% at 30% 18%,rgba(255,255,255,.07),transparent 60%),linear-gradient(rgba(255,255,255,.03),transparent 40%,rgba(255,255,255,.02));}
 @keyframes crtf{50%{opacity:.93}}
 @media (prefers-reduced-motion:reduce){#crt{animation:none}}
 #rot{position:absolute;inset:0;background:#05020a;display:none;align-items:center;justify-content:center;text-align:center;font-size:11px;line-height:2.2;padding:20px;z-index:9}
@@ -106,7 +107,7 @@ button{font-family:inherit;cursor:pointer}
 </style>
 </head>
 <body>
-<div id="crt"></div><canvas id="cv"></canvas>
+<canvas id="cv"></canvas>
 <canvas id="ui"></canvas>
 <div id="ctl"></div>
 <div id="hud" class="hide">
@@ -126,7 +127,7 @@ button{font-family:inherit;cursor:pointer}
   <div class="card" id="mainCard">
     <div>
       <h1>RINGSIDE<span>32</span></h1>
-      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V30</span></p>
+      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V31</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
       <button id="go" class="big">SNABB MATCH</button>
@@ -266,7 +267,7 @@ const SFX={
 };
 
 // ---------- 3D-kamera (look-at, zoombar) ----------
-const RB=250,FOC=300,NEAR=14,YAW=-.24,BASE_D=200,BASE_P=.08,BASE_Y=104;
+const RB=250,FOC=300,NEAR=14,YAW=-.24,BASE_D=190,BASE_P=.08,BASE_Y=96;
 const HC=GROUND+(-150*Math.cos(BASE_P)+300*Math.sin(BASE_P))*300/(300*Math.cos(BASE_P)+150*Math.sin(BASE_P));
 const AR={mx:0,mz:0,th:0,anim:null};
 const CAM={th:YAW,px:0,py:0,pz:0,R:[1,0,0],U:[0,1,0],F:[0,0,1],T:[0,0,0],dist:BASE_D};
@@ -463,7 +464,7 @@ class Fighter{
     const bounce=Math.sin(t*4.4+this.seed),bob=bounce*(this.stun>.5?.6:1.2)+Math.abs(Math.sin(this.walkPh))*1.2*Math.max(mv,mvW);
     const sl=this.slipA;
     const dd=Math.min(d,1.05),ss=Math.min(s,1.05);
-    let spA=.12+.46*dd-.36*ss+.1*Math.abs(sl),upA=.2+.5*dd-.42*ss,nkA=.3+.18*dd-.25*ss,px=-7*dd-6*ss+1.5*Math.abs(sl)+Math.sin(t*2.2+this.seed)*1.1,py=52-13*dd+bob-4*Math.abs(sl),tw=0;
+    let spA=.12+.46*dd-.36*ss+.1*Math.abs(sl),upA=.2+.5*dd-.42*ss,nkA=.3+.18*dd-.25*ss,px=-7*dd-6*ss+1.5*Math.abs(sl)+Math.sin(t*2.2+this.seed)*1.1,py=57-13*dd+bob-4*Math.abs(sl),tw=0;
     if(cl){spA+=.28;upA+=.2}
     // koreografi: varje led når sitt läge i tur och ordning (ben/höft först, sedan bål och sist armen)
     let rot=ROT0+.06*Math.sin(t*1.7+this.seed),hipR=ROT0*.7,heel=0,knee=0;
@@ -475,9 +476,9 @@ class Fighter{
     let hop=0;if(this.sideT>0){const k=1-this.sideT/.45;hop=Math.sin(k*Math.PI);py+=hop*5-2;spA+=.08*hop}
     if(this.stun>.15){upA+=Math.sin(t*5.3+this.seed)*this.stun*.12;nkA+=Math.sin(t*4.1)*this.stun*.35}
     const pel={x:px,y:py},
-      che={x:pel.x+Math.sin(spA)*36,y:pel.y+Math.cos(spA)*36},
-      nek={x:che.x+Math.sin(upA)*24,y:che.y+Math.cos(upA)*24},
-      hed={x:nek.x+Math.sin(nkA)*16,y:nek.y+Math.cos(nkA)*16};
+      che={x:pel.x+Math.sin(spA)*28,y:pel.y+Math.cos(spA)*28},
+      nek={x:che.x+Math.sin(upA)*18,y:che.y+Math.cos(upA)*18},
+      hed={x:nek.x+Math.sin(nkA)*14.3,y:nek.y+Math.cos(nkA)*14.3};
     const st=Math.min(1,this.stun*.8);let gF,gN;
     if(cl){const od=Math.abs(this.opp.root.x-this.root.x);gF={x:od+1,y:hed.y-22};gN={x:od-3,y:hed.y-31}}
     else if(this.blocking){if(d>.5){gF={x:hed.x+12,y:hed.y-15};gN={x:hed.x+10,y:hed.y-24}}else{gF={x:hed.x+11,y:hed.y-1};gN={x:hed.x+9,y:hed.y-6}}}
@@ -1658,54 +1659,71 @@ function humanMesh(T,key,mat){
   const ra={};for(const s of'LR'){const S=bh[BI['uarm.'+s]],E=bh[BI['farm.'+s]],Wr=bt[BI['farm.'+s]],u=vnorm(vsub(Wr,S)),d=vsub(E,S);ra[s]=vnorm(vsub(d,vmul(u,vdot(d,u))))}
   return{mesh,bones,bh,bt,BI,par:J.parent,ra,reg:cp('reg'+key,Uint8Array),sh:J.buf['sh'+key]?cp('sh'+key,Uint8Array):null,eyes:V.eyes.map(e=>e.map(x=>x*HS)),Q:bones.map(()=>new T.Quaternion()),P:bones.map(()=>[0,0,0]),look:null,arm:[{},{}],leg:[{},{}]};
 }
-// ---------- stiliserad low poly-boxare (som konceptbilden): byggd av kantiga loftade delar, skinnad till samma skelett ----------
-// regioner: 0 hud 1 shorts 2 midjeband/rand 3 hår 4 skägg 5 läppar 6 mörkt (ögon/bryn) 7 vitt
+// ---------- stiliserad low poly-boxare v2 (efter konceptbilden): kraftig V-form, tydligt ansikte, volymhår, stora blanka handskar, höga skor ----------
+// regioner: 0 hud 1 shorts 2 band/rand 3 hår 4 skägg 5 läppar 6 mörkt 7 vitt 8 handske 9 sko 10 ljus hud (highlights)
 function stylMesh(T,key,mat){
   const J=HUM.j,V=J.vars[key],bh=J.bones.map(b=>V.bones[b][0].map(x=>x*HS)),bt=J.bones.map(b=>V.bones[b][1].map(x=>x*HS)),BI={};J.bones.forEach((n,i)=>BI[n]=i);
-  const pos=[],col=[],si=[],sw=[],idx=[],freg=[],sw0=Math.abs(bh[BI['uarm.L']][0]),S=sw0;
+  const pos=[],col=[],si=[],sw=[],idx=[],freg=[],S=Math.abs(bh[BI['uarm.L']][0]),B=n=>BI[n];
   const vert=(p,r,w)=>{pos.push(p[0],p[1],p[2]);col.push(r);const a=w.slice(0,4);while(a.length<4)a.push([0,0]);const tot=a.reduce((s,q)=>s+q[1],0)||1;a.forEach(q=>{si.push(q[0]);sw.push(q[1]/tot)});return pos.length/3-1};
-  // loft: ringar längs en axel; varje ring {c:[x,y,z], rx, rzf, rzb, w:[[ben,vikt]..], reg} ; X/Z = ringens sidor
   const loft=(rings,X,Z,N,regFn,capA=true,capB=true)=>{const base=pos.length/3;
-    rings.forEach((g,ri)=>{for(let k=0;k<N;k++){const a=k/N*6.2832,c=Math.cos(a),s=Math.sin(a),rz=c>0?g.rzf:g.rzb,jit=g.j?g.j(k):1;
-      const p=vadd(g.c,vadd(vmul(X,s*g.rx*jit),vmul(Z,c*rz*jit)));vert(p,regFn?regFn(ri,k,c,s):g.reg||0,g.w)}});
+    rings.forEach((g,ri)=>{for(let k=0;k<N;k++){const a=k/N*6.2832+(g.rot||0),c=Math.cos(a),s=Math.sin(a),rz=c>0?g.rzf:g.rzb,jit=g.j?g.j(k,c,s):1;
+      vert(vadd(g.c,vadd(vmul(X,s*g.rx*jit),vmul(Z,c*rz*jit))),regFn?regFn(ri,k,c,s):g.reg||0,g.w)}});
     for(let r=0;r<rings.length-1;r++)for(let k=0;k<N;k++){const a=base+r*N+k,b=base+r*N+(k+1)%N,c2=a+N,d=b+N;idx.push(a,c2,b,b,c2,d);freg.push(col[a],col[a])}
-    const cap=(ri,flip)=>{const g=rings[ri],m=vert(g.c,g.capReg??(regFn?regFn(ri,0,1,0):g.reg||0),g.w);for(let k=0;k<N;k++){const a=base+ri*N+k,b=base+ri*N+(k+1)%N;flip?idx.push(m,a,b):idx.push(m,b,a);freg.push(col[m])}};
+    const cap=(ri,flip)=>{const g=rings[ri],m=vert(vadd(g.c,g.capOff||[0,0,0]),col[base+ri*N],g.w);for(let k=0;k<N;k++){const a=base+ri*N+k,b=base+ri*N+(k+1)%N;flip?idx.push(m,a,b):idx.push(m,b,a);freg.push(col[m])}};
     if(capA)cap(0,false);if(capB)cap(rings.length-1,true)};
-  const box=(c,X,Y,Z,hx,hy,hz,reg,w)=>{const b=pos.length/3;for(const sx of[-1,1])for(const sy of[-1,1])for(const sz of[-1,1])vert(vadd(c,vadd(vmul(X,sx*hx),vadd(vmul(Y,sy*hy),vmul(Z,sz*hz)))),reg,w);
+  // fasetterat klot/ellipsoid
+  const blob=(c,X,Y,Z,rx,ry,rz,reg,w,N=8,M=5,shape)=>{const rings=[];for(let i=1;i<M;i++){const v=i/M*Math.PI,y=-Math.cos(v),r=Math.sin(v),sh=shape?shape(y):1;rings.push({c:vadd(c,vmul(Y,y*ry)),rx:r*rx*sh,rzf:r*rz*sh,rzb:r*rz*sh,w,reg})}
+    rings[0].capOff=vmul(Y,-ry*(1-Math.cos(Math.PI/M)));rings[rings.length-1].capOff=vmul(Y,ry*(1-Math.cos(Math.PI/M)));loft(rings,X,Z,N,null,true,true)};
+  const box=(c,X,Y,Z,hx,hy,hz,reg,w,taper=1)=>{const b=pos.length/3;for(const sx of[-1,1])for(const sy of[-1,1])for(const sz of[-1,1])vert(vadd(c,vadd(vmul(X,sx*hx*(sy>0?taper:1)),vadd(vmul(Y,sy*hy),vmul(Z,sz*hz*(sy>0?taper:1))))),reg,w);
     for(const f of[[0,1,3,2],[4,6,7,5],[0,4,5,1],[2,3,7,6],[0,2,6,4],[1,5,7,3]]){idx.push(b+f[0],b+f[1],b+f[2],b+f[0],b+f[2],b+f[3]);freg.push(reg,reg)}};
-  const X=[1,0,0],Y=[0,1,0],Z=[0,0,1],B=n=>BI[n];
-  // ---- bål (bäcken -> bröst -> axlar), shorts nedtill
+  const X=[1,0,0],Y=[0,1,0],Z=[0,0,1];
+  const frame=d=>{let x=cross(d,[0,0,1]);if(Math.hypot(...x)<.2)x=cross(d,[1,0,0]);x=vnorm(x);return[x,vnorm(cross(x,d))]};
+  // ---- bål: V-form, stora bröstmuskler, magrutor (fasetter), latsar
   const H0=bh[B('hips')],Nk=bh[B('neck')],tl=Nk[1]-H0[1],at=t=>[0,H0[1]+t*tl,lerp(H0[2],Nk[2],t)+.4];
   const tw=t=>t<.22?[[B('hips'),1]]:t<.42?[[B('hips'),(.42-t)/.2],[B('spine'),(t-.22)/.2]]:t<.6?[[B('spine'),(.6-t)/.18],[B('chest'),(t-.42)/.18]]:[[B('chest'),1]];
-  const TP=[[-.16,.64,.48,.52],[0,.74,.52,.58],[.12,.72,.5,.52],[.2,.68,.5,.48],[.32,.68,.54,.48],[.44,.76,.6,.52],[.56,.94,.74,.58],[.68,1.1,.8,.62],[.8,1.2,.7,.62],[.9,1.14,.56,.56],[.97,.72,.46,.44],[1.02,.46,.38,.36]];
-  loft(TP.map(([t,rx,zf,zb])=>({c:at(t),rx:rx*S,rzf:zf*S,rzb:zb*S,w:tw(t),t,j:t>.5&&t<.75?(k=>{const a=k/12*6.2832,c=Math.cos(a),sn=Math.abs(Math.sin(a));return c>.2?1+.1*Math.exp(-(((sn-.5)/.22)**2))-.05*Math.exp(-((sn/.12)**2)):1}):null})),X,Z,12,(ri,k,c,s)=>{const t=TP[ri][0];return t<.13?1:t<.21?2:0});
-  // ---- nacke
+  const TP=[[-.1,.68,.5,.56],[.06,.72,.52,.58],[.16,.66,.5,.5],[.26,.62,.52,.46],[.36,.64,.56,.46],[.46,.72,.6,.5],[.56,.92,.76,.58],[.66,1.12,.84,.62],[.76,1.24,.78,.64],[.86,1.2,.62,.6],[.94,.9,.5,.5],[1,.5,.4,.38]];
+  const pec=t=>(k,c,s)=>{const as=Math.abs(s);let f=1;if(c>.15){if(t>.5&&t<.8)f+=.11*Math.exp(-(((as-.45)/.24)**2))-.06*Math.exp(-((s/.1)**2));if(t>.2&&t<.5)f+=.05*Math.cos(t*60)*(as<.35?1:0)-.04*Math.exp(-((s/.08)**2))}return f};
+  loft(TP.map(([t,rx,zf,zb])=>({c:at(t),rx:rx*S,rzf:zf*S,rzb:zb*S,w:tw(t),j:pec(t)})),X,Z,16,(ri)=>{const t=TP[ri][0];return t<.12?1:t<.2?2:0});
+  // ---- nacke (kort, kraftig, trapezius)
   const Hd=bh[B('head')],Ht=bt[B('head')],hl=Math.hypot(...vsub(Ht,Hd));
-  loft([{c:vadd(Nk,[0,-1,.3]),rx:.56*S,rzf:.48*S,rzb:.46*S,w:[[B('neck'),1]]},{c:vadd(Hd,[0,-1,.8]),rx:.46*S,rzf:.44*S,rzb:.4*S,w:[[B('head'),.6],[B('neck'),.4]]}],X,Z,8,null,false,false);
-  // ---- huvud: kantig skalle med fyrkantig käke, framåtskjuten haka
-  const hc=t=>vadd(Hd,[0,-hl*.2+t*hl*1.3,hl*.14]),HW=[[B('head'),1]],HR=1.22;
-  const HP=[[0,.3,.36,.34],[.1,.42,.6,.42],[.24,.46,.62,.5],[.4,.5,.6,.56],[.56,.52,.6,.58],[.72,.5,.55,.58],[.86,.43,.46,.5],[.96,.28,.3,.32],[1,.1,.1,.1]];
-  loft(HP.map(([t,rx,zf,zb])=>({c:hc(t),rx:rx*hl*HR,rzf:zf*hl*HR,rzb:zb*hl*HR,w:HW})),X,Z,10,null,true,true);
-  // hår: kantiga tofsar ovanpå, lägre bak
-  const HPh=[[.62,.55,.5,.64],[.74,.56,.6,.64],[.86,.5,.54,.58],[.96,.38,.4,.44],[1.06,.16,.18,.2]];
-  loft(HPh.map(([t,rx,zf,zb],ri)=>({c:vadd(hc(t),[0,hl*.02,-hl*.03]),rx:rx*hl*HR,rzf:zf*hl*HR,rzb:zb*hl*HR,w:HW,j:k=>1+((k*7+ri*3)%5-2)*.035})),X,Z,10,(ri,k,c)=>ri===0&&c>.3?0:3,false,true);
-  for(const sx of[-1,1]){box(vadd(hc(.56),[sx*hl*.2,0,hl*.71]),X,Y,Z,hl*.08,hl*.035,hl*.03,6,HW);box(vadd(hc(.65),[sx*hl*.21,0,hl*.7]),X,Y,Z,hl*.12,hl*.028,hl*.04,6,HW);
-    box(vadd(hc(.48),[sx*hl*.62,0,0]),X,Y,Z,hl*.06,hl*.14,hl*.1,0,HW)}
-  box(vadd(hc(.44),[0,0,hl*.78]),X,Y,Z,hl*.07,hl*.12,hl*.08,0,HW);box(vadd(hc(.27),[0,0,hl*.72]),X,Y,Z,hl*.16,hl*.025,hl*.03,5,HW);
-  // ---- armar: stor deltoid, biceps, underarm
-  for(const s of'LR'){const ua=B('uarm.'+s),fa=B('farm.'+s),A=bh[ua],E=bh[fa],Wr=bt[fa],d1=vnorm(vsub(E,A)),d2=vnorm(vsub(Wr,E)),fr=(d)=>{const x=vnorm(cross(d,[0,0,1]).map((v,i)=>v||[1,0,0][i]));return[x,vnorm(cross(x,d))]};
-    let[x1,z1]=fr(d1);const L1=Math.hypot(...vsub(E,A));
-    loft([[-.2,.3],[0,.5],[.16,.55],[.4,.44],[.58,.46],[.82,.36],[1,.33]].map(([t,r])=>({c:vadd(A,vmul(d1,t*L1)),rx:r*S,rzf:r*S*(t>.3&&t<.7?1.1:1),rzb:r*S*.95,w:t<.05?[[ua,.55],[B('chest'),.45]]:t<.85?[[ua,1]]:[[ua,.5],[fa,.5]]})),x1,z1,8,null,true,true);
-    let[x2,z2]=fr(d2);const L2=Math.hypot(...vsub(Wr,E));
-    loft([[0,.34],[.22,.42],[.5,.37],[.85,.28],[1.05,.25]].map(([t,r])=>({c:vadd(E,vmul(d2,t*L2)),rx:r*S,rzf:r*S,rzb:r*S,w:t<.1?[[fa,.6],[ua,.4]]:[[fa,1]]})),x2,z2,8,null,true,true)}
-  // ---- ben + vida shorts
-  for(const s of'LR'){const th=B('thigh.'+s),sh=B('shin.'+s),Hp=bh[th],K=bh[sh],An=bh[B('foot.'+s)],d1=vnorm(vsub(K,Hp)),d2=vnorm(vsub(An,K)),xs=s==='L'?1:-1;
-    const x1=vnorm(cross([0,0,1],d1)),z1=vnorm(cross(d1,x1)),L1=Math.hypot(...vsub(K,Hp)),L2=Math.hypot(...vsub(An,K));
-    loft([[0,.64],[.25,.66],[.55,.56],[.85,.44],[1,.4]].map(([t,r])=>({c:vadd(Hp,vmul(d1,t*L1)),rx:r*S,rzf:r*S*1.05,rzb:r*S,w:t<.1?[[th,.6],[B('hips'),.4]]:t<.85?[[th,1]]:[[th,.5],[sh,.5]]})),x1,z1,8,null,true,true);
-    const x2=vnorm(cross([0,0,1],d2)),z2=vnorm(cross(d2,x2));
-    loft([[0,.4],[.25,.5],[.5,.41],[.8,.31],[1,.28]].map(([t,r])=>({c:vadd(K,vmul(d2,t*L2)),rx:r*S,rzf:r*S,rzb:r*S*(t>.15&&t<.5?1.15:1),w:t<.1?[[sh,.6],[th,.4]]:[[sh,1]]})),x2,z2,8,null,true,true);
-    // shorts-ben: vidare och rakare, vit rand på utsidan
-    loft([[-.12,.76],[.2,.8],[.5,.8],[.58,.8]].map(([t,r])=>({c:vadd(vadd(Hp,vmul(d1,t*L1)),[xs*S*.06,0,0]),rx:r*S,rzf:r*S*.95,rzb:r*S*.95,w:t<.3?[[B('hips'),.5],[th,.5]]:[[th,1]]})),x1,z1,10,(ri,k,c,sn)=>sn*xs>.8?2:1,false,true)}
+  loft([{c:vadd(Nk,[0,-1.5,0]),rx:.62*S,rzf:.46*S,rzb:.5*S,w:[[B('chest'),.5],[B('neck'),.5]]},{c:vadd(Nk,[0,2,.4]),rx:.44*S,rzf:.4*S,rzb:.38*S,w:[[B('neck'),1]]},{c:vadd(Hd,[0,0,.8]),rx:.38*S,rzf:.38*S,rzb:.34*S,w:[[B('head'),.6],[B('neck'),.4]]}],X,Z,10,null,false,false);
+  // ---- huvud: kantig skalle, bred käke, haka, kindben
+  const HR=1.12,hc=t=>vadd(Hd,[0,-hl*.12+t*hl*1.18,hl*.16]),HW=[[B('head'),1]];
+  const HP=[[0,.26,.32,.3],[.08,.4,.58,.4],[.2,.47,.64,.5],[.34,.5,.64,.56],[.48,.53,.62,.6],[.62,.53,.6,.62],[.76,.5,.55,.6],[.88,.42,.46,.52],[.97,.26,.3,.34]];
+  loft(HP.map(([t,rx,zf,zb])=>({c:hc(t),rx:rx*hl*HR,rzf:zf*hl*HR,rzb:zb*hl*HR,w:HW,j:(k,c,s)=>c>.6&&t>.3&&t<.5?1.04:1})),X,Z,12,null,true,true);
+  const fz=t=>hl*HR*(HP.reduce((a,p)=>Math.abs(p[0]-t)<Math.abs(a[0]-t)?p:a)[2]);
+  // ögon (vitt + pupill), kraftiga bryn, näsa, mun, öron
+  for(const sx of[-1,1]){const ey=.5,ec=vadd(hc(ey),[sx*hl*.2,0,fz(ey)-hl*.02]);
+    box(ec,X,Y,Z,hl*.085,hl*.045,hl*.03,7,HW);box(vadd(ec,[sx*-hl*.015,0,hl*.022]),X,Y,Z,hl*.04,hl*.04,hl*.02,6,HW);
+    box(vadd(hc(.6),[sx*hl*.21,0,fz(.6)-hl*.01]),X,Y,Z,hl*.13,hl*.035,hl*.05,3,HW);
+    box(vadd(hc(.46),[sx*hl*.57,0,-hl*.02]),X,Y,Z,hl*.06,hl*.14,hl*.11,0,HW)}
+  box(vadd(hc(.4),[0,0,fz(.4)+hl*.04]),X,Y,Z,hl*.075,hl*.11,hl*.07,0,HW,.6);
+  box(vadd(hc(.24),[0,0,fz(.24)-hl*.01]),X,Y,Z,hl*.15,hl*.022,hl*.03,5,HW);
+  // hår: kalott + kantiga bakåtstrukna tofsar med volym
+  loft([[.56,.58,.46,.66],[.7,.6,.6,.68],[.84,.56,.6,.64],[.96,.46,.5,.52],[1.08,.3,.32,.34],[1.14,.08,.08,.08]].map(([t,rx,zf,zb],ri)=>({c:vadd(hc(t),[0,0,-hl*.04]),rx:rx*hl*HR,rzf:zf*hl*HR,rzb:zb*hl*HR,w:HW,
+    j:(k,c,s)=>1+(ri>0?.07*Math.sin(k*2.1+ri*1.7):0)})),X,Z,12,(ri,k,c)=>ri===0&&c>.2?0:3,false,true);
+  for(let i=0;i<5;i++){const a=(i-2)*.32;box(vadd(hc(1.0),[Math.sin(a)*hl*.3,hl*.04,hl*.3-Math.abs(i-2)*hl*.06]),X,Y,Z,hl*.13,hl*.07,hl*.18,3,HW,.7)}
+  // ---- armar: stor deltoid, biceps, underarm; stora blanka handskar med vit manschett och tumme
+  for(const s of'LR'){const ua=B('uarm.'+s),fa=B('farm.'+s),A=bh[ua],E=bh[fa],Wr=bt[fa],d1=vnorm(vsub(E,A)),d2=vnorm(vsub(Wr,E)),[x1,z1]=frame(d1),[x2,z2]=frame(d2),L1=Math.hypot(...vsub(E,A)),L2=Math.hypot(...vsub(Wr,E)),sg=s==='L'?1:-1;
+    blob(vadd(A,[sg*S*.08,S*.06,0]),X,Y,Z,S*.5,S*.48,S*.5,0,[[ua,.75],[B('chest'),.25]],10,6);
+    loft([[.05,.46],[.3,.5],[.5,.48],[.72,.42],[.92,.36],[1,.34]].map(([t,r])=>({c:vadd(A,vmul(d1,t*L1)),rx:r*S,rzf:r*S*1.08,rzb:r*S,w:t<.85?[[ua,1]]:[[ua,.5],[fa,.5]]})),x1,z1,10,null,true,true);
+    loft([[0,.36],[.2,.44],[.45,.4],[.75,.32],[.92,.28]].map(([t,r])=>({c:vadd(E,vmul(d2,t*L2)),rx:r*S,rzf:r*S,rzb:r*S,w:t<.08?[[fa,.6],[ua,.4]]:[[fa,1]]})),x2,z2,10,null,true,true);
+    blob(E,x1,d1,z1,S*.36,S*.36,S*.36,0,[[ua,.5],[fa,.5]],8,4);
+    const FW=[[fa,1]],wr=vadd(E,vmul(d2,L2*.92));
+    loft([[0,.36],[.5,.38],[1,.37]].map(([t,r])=>({c:vadd(wr,vmul(d2,t*S*.42)),rx:r*S,rzf:r*S,rzb:r*S,w:FW,reg:7})),x2,z2,10,null,true,true);
+    const gc=vadd(wr,vmul(d2,S*.92));blob(gc,x2,d2,z2,S*.56,S*.62,S*.6,8,FW,10,6,y=>y>.3?1-.1*(y-.3):1);
+    blob(vadd(vadd(gc,vmul(x2,sg*-S*.42)),vmul(d2,-S*.1)),x2,d2,z2,S*.2,S*.32,S*.22,8,FW,6,4)}
+  // ---- ben, vida shorts, höga skor (vit sula, snörning, vit kant)
+  for(const s of'LR'){const th=B('thigh.'+s),sh=B('shin.'+s),ft=B('foot.'+s),Hp=bh[th],K=bh[sh],An=bh[ft],Tt=bt[ft],d1=vnorm(vsub(K,Hp)),d2=vnorm(vsub(An,K)),xs=s==='L'?1:-1,L1=Math.hypot(...vsub(K,Hp)),L2=Math.hypot(...vsub(An,K));
+    const x1=vnorm(cross([0,0,1],d1)),z1=vnorm(cross(d1,x1)),x2=vnorm(cross([0,0,1],d2)),z2=vnorm(cross(d2,x2));
+    loft([[0,.6],[.3,.6],[.6,.5],[.88,.4],[1,.38]].map(([t,r])=>({c:vadd(Hp,vmul(d1,t*L1)),rx:r*S,rzf:r*S*1.06,rzb:r*S,w:t<.1?[[th,.6],[B('hips'),.4]]:t<.85?[[th,1]]:[[th,.5],[sh,.5]]})),x1,z1,10,null,true,true);
+    loft([[0,.38],[.25,.47],[.5,.38],[.75,.3]].map(([t,r])=>({c:vadd(K,vmul(d2,t*L2)),rx:r*S,rzf:r*S,rzb:r*S*(t>.15&&t<.5?1.12:1),w:t<.08?[[sh,.6],[th,.4]]:[[sh,1]]})),x2,z2,10,null,true,true);
+    loft([[-.14,.78],[.15,.82],[.45,.84],[.62,.84]].map(([t,r])=>({c:vadd(vadd(Hp,vmul(d1,t*L1)),[xs*S*.07,0,0]),rx:r*S,rzf:r*S*.96,rzb:r*S*.96,w:t<.3?[[B('hips'),.5],[th,.5]]:[[th,1]]})),x1,z1,12,(ri,k,c,sn)=>sn*xs>.82?2:1,false,true);
+    // sko: skaft från smalbenet, fot framåt
+    const SW=[[sh,.3],[ft,.7]];
+    loft([[.62,.36,9],[.78,.38,9],[.9,.4,9],[1.0,.42,9]].map(([t,r,rg])=>({c:vadd(K,vmul(d2,t*L2)),rx:r*S,rzf:r*S*1.05,rzb:r*S,w:t<.75?[[sh,1]]:SW})),x2,z2,10,(ri,k,c)=>ri===0?7:c>.8?7:9,true,false);
+    const fd=vnorm([Tt[0]-An[0],0,Tt[2]-An[2]]),fx=vnorm(cross(Y,fd)),FL=Math.hypot(Tt[0]-An[0],Tt[2]-An[2])*1.25,base=[An[0],S*.16,An[2]];
+    loft([[-.3,.3,.3],[0,.36,.42],[.45,.34,.36],[.85,.3,.28],[1,.22,.2]].map(([t,r,hgt])=>({c:vadd(vadd(base,vmul(fd,t*FL)),[0,hgt*S*.55,0]),rx:r*S,rzf:hgt*S*.9,rzb:hgt*S*.9,w:[[ft,1]]})),fx,Y,10,(ri,k,c)=>c<-.55?7:9,true,true)}
   const g0=new T.BufferGeometry();g0.setAttribute('position',new T.Float32BufferAttribute(pos,3));g0.setIndex(idx);g0.setAttribute('skinIndex',new T.Uint16BufferAttribute(si,4));g0.setAttribute('skinWeight',new T.Float32BufferAttribute(sw,4));
   const g=g0.toNonIndexed(),reg=new Uint8Array(idx.length);for(let t=0;t<idx.length;t+=3){const r=freg[t/3];reg[t]=reg[t+1]=reg[t+2]=r}
   g.setAttribute('color',new T.Float32BufferAttribute(new Float32Array(idx.length*3).fill(.8),3));g.computeVertexNormals();
@@ -1713,8 +1731,8 @@ function stylMesh(T,key,mat){
   J.parent.forEach((p,i)=>{const h=bh[i];if(p<0)bones[i].position.set(h[0],h[1],h[2]);else{const q=bh[p];bones[i].position.set(h[0]-q[0],h[1]-q[1],h[2]-q[2]);bones[p].add(bones[i])}});
   const mesh=new T.SkinnedMesh(g,mat);mesh.add(bones[0]);mesh.updateMatrixWorld(true);mesh.bind(new T.Skeleton(bones));mesh.castShadow=mesh.receiveShadow=true;mesh.frustumCulled=false;
   const ra={};for(const s of'LR'){const A=bh[BI['uarm.'+s]],E=bh[BI['farm.'+s]],Wr=bt[BI['farm.'+s]],u=vnorm(vsub(Wr,A)),d=vsub(E,A);ra[s]=vnorm(vsub(d,vmul(u,vdot(d,u))))}
-  const eyes=[-1,1].map(sx=>{const c=vadd(hc(.56),[sx*hl*.2,0,hl*.71]);return[c[0],c[1],c[2],.01]});
-  return{mesh,bones,bh,bt,BI,par:J.parent,ra,reg,sh:null,eyes,Q:bones.map(()=>new T.Quaternion()),P:bones.map(()=>[0,0,0]),look:null,arm:[{},{}],leg:[{},{}],styl:true};
+  return{mesh,bones,bh,bt,BI,par:J.parent,ra,reg,sh:null,eyes:[[0,0,0,.01],[0,0,0,.01]],Q:bones.map(()=>new T.Quaternion()),P:bones.map(()=>[0,0,0]),look:null,arm:[{},{}],leg:[{},{}],styl:true,model:true,gloveOff:S*.92-Math.hypot(...vsub(bt[BI['farm.L']],bh[BI['farm.L']]))*.08,
+    clip:{sp:[.78,.62],ch:[1.2,.84],hc:.5,hr:.66}};
 }
 // ---------- din low poly-boxare (boxer_lowpoly.obj + texturer), riggad till spelets skelett ----------
 // Modellen är byggd av stela delar; varje del följer ett ben (huvud, bål, över-/underarm med handske, lår, smalben, känga).
@@ -1760,7 +1778,7 @@ function human3(o){
   for(const r of f.rip)r.w=ripWorld(f,r);
   const{BI,bh,bt,Q,par}=h,Pw=h.P,rest=i=>vsub(bt[i],bh[i]),len=i=>Math.hypot(...rest(i));
   if(h.look!==f.look&&h.reg){h.look=f.look;const lk=f.look,sk=lin(lk.skin),C=[sk,lin(lk.trunk),lin(lk.band),lin(lk.hair||hx(lk.skin,.8)),lin(lk.beard||hx(lk.skin,.85)),lin(hx(lk.skin,.74))];
-    C[5]=[C[5][0]*1.08,C[5][1]*.82,C[5][2]*.82];C[6]=lin('#1c1210');C[7]=lin('#f2f0ea');const a=h.mesh.geometry.attributes.color,si=h.mesh.geometry.attributes.skinIndex,sw=h.mesh.geometry.attributes.skinWeight,hb=h.BI.head,nb=h.BI.neck;for(let i=0;i<h.reg.length;i++){const top=si.getX(i),hw=(top===hb||top===nb)?sw.getX(i):0,c=C[h.reg[i]],k=h.sh?1-(1-h.sh[i]/255)*(1-hw):1,kr=k,kb=k*k*.85+.15*k;a.array[i*3]=c[0]*kr;a.array[i*3+1]=c[1]*(k*.94+.06*kb);a.array[i*3+2]=c[2]*kb}a.needsUpdate=true}
+    C[5]=[C[5][0]*1.08,C[5][1]*.82,C[5][2]*.82];C[6]=lin('#1c1210');C[7]=lin('#f2f0ea');C[8]=lin(lk.glove);C[9]=lin(lk.boot);C[10]=lin(hx(lk.skin,1.12));const a=h.mesh.geometry.attributes.color,si=h.mesh.geometry.attributes.skinIndex,sw=h.mesh.geometry.attributes.skinWeight,hb=h.BI.head,nb=h.BI.neck;for(let i=0;i<h.reg.length;i++){const top=si.getX(i),hw=(top===hb||top===nb)?sw.getX(i):0,c=C[h.reg[i]],k=h.sh?1-(1-h.sh[i]/255)*(1-hw):1,kr=k,kb=k*k*.85+.15*k;a.array[i*3]=c[0]*kr;a.array[i*3+1]=c[1]*(k*.94+.06*kb);a.array[i*3+2]=c[2]*kb}a.needsUpdate=true}
   const put=(i,q)=>{const p=par[i];Pw[i]=p<0?Pel.slice():vadd(Pw[p],qrot(Q[p],vsub(bh[i],bh[p])));Q[i].copy(q);const b=h.bones[i];
     if(p<0){b.position.set(Pw[i][0],Pw[i][1],Pw[i][2]);b.quaternion.copy(q)}else b.quaternion.copy(H.q2.copy(Q[p]).invert().multiply(q))};
   const q=H.q,Z=[0,0,1];
@@ -1774,9 +1792,14 @@ function human3(o){
   for(const s of'LR'){const lead=s===leadS,ai=lead?0:1,cl=BI['clav.'+s],ua=BI['uarm.'+s],fa=BI['farm.'+s],hd=BI['hand.'+s];
     put(cl,Q[BI.chest]);const S=vadd(Pw[cl],qrot(Q[cl],vsub(bh[ua],bh[cl])));
     const L1=len(ua),L2=len(fa)+(h.gloveOff||4.2),fbp=vadd(vmul(Fr(rot),-.6),[0,-1,0]),own=clipShapes(h),op=R3&&R3.fighters.find(q=>q!==o&&q.hum&&q.grp.visible&&!q.f.down);
-    const AR2=h.styl?1.5:1;let Tg=W3(lead?5:7),pole=W3(lead?4:6);Tg=pushOut(Tg,own,6.8*AR2*.85);if(op&&op.hum.P[0])Tg=pushOut(Tg,clipShapes(op.hum),6.8);
-    let k=ik3(S,Tg,L1,L2,pole,fbp);const E2=pushOut(k.E,own,3.4*AR2);if(vdist(E2,k.E)>.05){pole=vadd(E2,vsub(E2,vlerp(S,k.T,.5)));k=ik3(S,Tg,L1,L2,pole,fbp)}
-    for(let it=0;it<2;it++){const mid=vlerp(k.E,k.T,.5),m2=pushOut(mid,own,3.2*AR2);if(vdist(m2,mid)>.05){Tg=vadd(k.T,vsub(m2,mid));k=ik3(S,Tg,L1,L2,pole,fbp)}}
+    const AR2=h.styl?1.5:1;let Tg=W3(lead?5:7);Tg=pushOut(Tg,own,6.8*AR2*.85);if(op&&op.hum.P[0])Tg=pushOut(Tg,clipShapes(op.hum),6.8);
+    // stabil arm: utjämnat handmål + armbågsriktning som aldrig byter sida (ingen glitch i slagen)
+    const SM=h.armS||(h.armS=[{},{}]),Am=SM[ai];if(Am.tg&&vdist(Am.tg,Tg)<60){let d=vmul(vsub(Tg,Am.tg),.55);const dl=Math.hypot(...d);if(dl>13)d=vmul(d,13/dl);Am.tg=vadd(Am.tg,d)}else Am.tg=Tg.slice();Tg=Am.tg;
+    const ln=vnorm(vsub(Tg,S)),offOf=v=>{const d=vsub(v,S);return vsub(d,vmul(ln,vdot(d,ln)))};
+    const sideX=qrot(Q[BI.chest],[s==='L'?1:-1,0,0]);let want=offOf(W3(lead?4:6));const wl=Math.hypot(...want);
+    want=vnorm(vadd(wl>1e-3?vmul(want,1/wl):[0,0,0],vadd(vmul(offOf(vadd(S,sideX)),1.1),vmul(offOf(vadd(S,[0,-1,0])),.9))));
+    let pv=want;if(Am.pv){const pp=vnorm(offOf(vadd(S,Am.pv)));if(vdot(pv,pp)<-.2)pv=pp;pv=vnorm(vlerp(pp,pv,.3))}Am.pv=pv;
+    const k=ik3(S,Tg,L1,L2,vadd(vlerp(S,Tg,.5),vmul(pv,30)),fbp);
     put(ua,frameQ(rest(ua),h.ra[s],vsub(k.E,S),k.pv,q));put(fa,frameQ(rest(fa),h.ra[s],vsub(k.T,k.E),k.pv,q));put(hd,Q[fa]);
     const A=h.arm[ai];A.wr=Pw[hd];A.dir=vnorm(vsub(k.T,k.E));A.el=Pw[fa];A.sh=S;A.s=s}
   for(const s of'LR'){const lead=s===leadS,li=lead?0:1,th=BI['thigh.'+s],sh=BI['shin.'+s],ft=BI['foot.'+s];
@@ -2062,8 +2085,8 @@ function init3D(THREE){
     o.brows=[0,1].map(()=>{const b=new T.Mesh(new T.BoxGeometry(1,1,1),new T.MeshStandardMaterial({color:f.look.hair||'#241408',roughness:.9}));b.matrixAutoUpdate=false;grp.add(b);return b});
     o.mouth=new T.Mesh(new T.BoxGeometry(1,1,1),dark);o.mouth.matrixAutoUpdate=false;grp.add(o.mouth);
     if(HUM){try{
-      const hs=new T.MeshStandardMaterial({vertexColors:true,color:0xffffff,roughness:.62,flatShading:true,side:T.DoubleSide});
-      o.hum=BOX?boxerMesh(T,f.idx===1):stylMesh(T,f.idx?'b':'a',hs);grp.add(o.hum.mesh);o.skin=o.torsoM=o.hum.mats||hs;o.xr=buildXray(T,o);
+      const hs=new T.MeshStandardMaterial({vertexColors:true,color:0xffffff,roughness:.5,flatShading:true,side:T.DoubleSide});
+      o.hum=stylMesh(T,f.idx?'b':'a',hs);grp.add(o.hum.mesh);o.skin=o.torsoM=o.hum.mats||hs;o.xr=buildXray(T,o);
       {const h=o.hum,hi=h.BI.head,H0=h.bh[hi],H1=h.bt[hi],hh=Math.hypot(...vsub(H1,H0)),g=new T.SphereGeometry(1,9,6,0,Math.PI*2,0,Math.PI*.56),pa=g.attributes.position;
         for(let i=0;i<pa.count;i++){const x=pa.getX(i),y=pa.getY(i),z=pa.getZ(i),n=1+.1*Math.sin(x*9+z*7)*Math.sin(y*11+x*5)+.06*Math.sin(z*17);pa.setXYZ(i,x*n,y*n,z*n)}g.computeVertexNormals();
         const hair=new T.Mesh(g,new T.MeshStandardMaterial({color:0x3b2416,roughness:.8,flatShading:true}));const c=vadd(vlerp(H0,H1,.5),[0,hh*.03,-hh*.06]);hair.position.set(c[0]-H0[0],c[1]-H0[1],c[2]-H0[2]);hair.scale.set(hh*.47,hh*.5,hh*.55);hair.rotation.x=-.42;hair.castShadow=true;h.bones[hi].add(hair);o.hair=hair}
@@ -2088,12 +2111,12 @@ function init3D(THREE){
       vec3 grade(vec2 u){vec3 c=texture2D(tC,u).rgb;c=aces(c*1.05);return pow(c,vec3(1./2.2));}
       void main(){
         // CRT: bukt, färgfransar, glöd, scanlines, RGB-mask, vinjett, flimmer
-        vec2 q=vUv*2.-1.;q+=q*(q.yx*q.yx)*vec2(.028,.04);vec2 uv=q*.5+.5;
+        vec2 q=vUv*2.-1.;q+=q*(q.yx*q.yx)*vec2(.06,.085);vec2 uv=q*.5+.5;
         if(uv.x<0.||uv.x>1.||uv.y<0.||uv.y>1.){gl_FragColor=vec4(0.,0.,0.,1.);return;}
         vec2 p=1./res;float ca=.0018*length(q);vec3 c=vec3(grade(uv+vec2(ca,0.)).r,grade(uv).g,grade(uv-vec2(ca,0.)).b);
         vec3 gl=(grade(uv+vec2(3.*p.x,0.))+grade(uv-vec2(3.*p.x,0.))+grade(uv+vec2(0.,3.*p.y))+grade(uv-vec2(0.,3.*p.y)))*.25;c+=max(gl-.55,0.)*.6;
         c=mix(c,c*vec3(.55,.8,1.15)*.8+vec3(0.,.015,.04),xr);
-        float sl=fract(gl_FragCoord.y/3.);c*=mix(1.,.78,smoothstep(.3,.5,abs(sl-.5)));
+        float sl=fract(gl_FragCoord.y/3.);c*=mix(1.,.7,smoothstep(.28,.5,abs(sl-.5)));float nz=fract(sin(dot(floor(gl_FragCoord.xy/2.)+floor(time*30.),vec2(12.9898,78.233)))*43758.5453);c+=(nz-.5)*.05;c*=1.+.05*smoothstep(.0,.06,.06-abs(fract(uv.y*.7-time*.12)-.5));
         float m=mod(gl_FragCoord.x,3.);vec3 mask=m<1.?vec3(1.,.74,.74):m<2.?vec3(.74,1.,.74):vec3(.74,.74,1.);c*=mix(vec3(1.),mask,.32)*1.16;
         float v=16.*uv.x*uv.y*(1.-uv.x)*(1.-uv.y);c*=pow(v,.22);c*=.985+.015*sin(time*62.);
         gl_FragColor=vec4(c,1.);}`});
@@ -2259,9 +2282,10 @@ fit();addEventListener('resize',fit);
 bounds();F[0].reset(250);F[1].reset(390);game.cam=320-W/2;
 requestAnimationFrame(frame);
 if(location.protocol.startsWith('http')){const hj=fetch('human.json').then(r=>r.ok?r.json():null).catch(()=>null),hb=fetch('human.bin').then(r=>r.ok?r.arrayBuffer():null).catch(()=>null);
-  const bx=fetch('boxer.json').then(r=>r.ok?r.json():null).catch(()=>null);
+  const bx=Promise.resolve(null);
   Promise.all([import('./three.module.min.js'),hj,hb,import('./cannon-es.js').catch(()=>null),bx]).then(([m,j,b,c,x])=>{if(j&&b)HUM={j,b};if(c)CANNON=c;if(x)BOX=x;try{init3D(m)}catch(e){console.error('3D av:',e);R3=null}}).catch(e=>console.warn('Three.js kunde inte laddas',e))}
 })();
 </script>
+<div id="crt"></div><div id="tvframe"></div>
 </body>
 </html>
