@@ -127,7 +127,7 @@ button{font-family:inherit;cursor:pointer}
   <div class="card" id="mainCard">
     <div>
       <h1>RINGSIDE<span>32</span></h1>
-      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V33</span></p>
+      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V34</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
       <button id="go" class="big">SNABB MATCH</button>
@@ -1757,14 +1757,14 @@ function boxerMesh(T,blue){
 let B3D=null;
 function glbMesh(T,blue){
   const J=B3D.j,BI={};J.bones.forEach((n,i)=>BI[n]=i);const cp=(n,C)=>{const[o,l]=J.buf[n];return new C(B3D.b.slice(o,o+l))};
-  const p16=cp('pos',Int16Array),idx=cp('idx',Uint16Array),col=cp('col',Uint8Array),si=cp('si',Uint8Array),sw=cp('sw',Uint8Array),nv=p16.length/3;
-  const pos=new Float32Array(nv*3),c=new Float32Array(nv*3),SW=new Float32Array(nv*4);
-  for(let i=0;i<nv;i++){let r=col[i*3],g=col[i*3+1],b=col[i*3+2];if(blue&&r>2.1*g&&r>2.1*b){const nr=g*.6,ng=g*.9+r*.18,nb=Math.min(255,r*1.05);r=nr;g=ng;b=nb}
-    const L=v=>Math.pow(v/255,2.2);pos[i*3]=p16[i*3]/100;pos[i*3+1]=p16[i*3+1]/100;pos[i*3+2]=p16[i*3+2]/100;c[i*3]=L(r)*.92;c[i*3+1]=L(g)*.9;c[i*3+2]=L(b)*.95;for(let a=0;a<4;a++)SW[i*4+a]=sw[i*4+a]/255}
-  const g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(pos,3));g.setAttribute('color',new T.BufferAttribute(c,3));g.setAttribute('skinIndex',new T.Uint16BufferAttribute(Uint16Array.from(si),4));g.setAttribute('skinWeight',new T.BufferAttribute(SW,4));g.setIndex(new T.BufferAttribute(idx,1));g.computeVertexNormals();
+  const p16=cp('pos',Int16Array),idx=J.i32?cp('idx',Uint32Array):cp('idx',Uint16Array),uv16=cp('uv',Uint16Array),si=cp('si',Uint8Array),sw=cp('sw',Uint8Array),nv=p16.length/3;
+  const pos=new Float32Array(nv*3),uv=new Float32Array(nv*2),SW=new Float32Array(nv*4);
+  for(let i=0;i<nv;i++){pos[i*3]=p16[i*3]/100;pos[i*3+1]=p16[i*3+1]/100;pos[i*3+2]=p16[i*3+2]/100;uv[i*2]=uv16[i*2]/65535;uv[i*2+1]=uv16[i*2+1]/65535;for(let a=0;a<4;a++)SW[i*4+a]=sw[i*4+a]/255}
+  const g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(pos,3));g.setAttribute('uv',new T.BufferAttribute(uv,2));g.setAttribute('skinIndex',new T.Uint16BufferAttribute(Uint16Array.from(si),4));g.setAttribute('skinWeight',new T.BufferAttribute(SW,4));g.setIndex(new T.BufferAttribute(idx,1));g.computeVertexNormals();
+  const tx=new T.TextureLoader().load(blue?'tex/boxer_blue.jpg':'tex/boxer_red.jpg');tx.colorSpace=T.SRGBColorSpace;tx.flipY=false;tx.anisotropy=4;
   const bh=J.rest.map(r=>r[0]),bt=J.rest.map(r=>r[1]),bones=J.bones.map(n=>{const b=new T.Bone();b.name=n;return b});
   J.parent.forEach((p,i)=>{const h=bh[i];if(p<0)bones[i].position.set(h[0],h[1],h[2]);else{const q=bh[p];bones[i].position.set(h[0]-q[0],h[1]-q[1],h[2]-q[2]);bones[p].add(bones[i])}});
-  const mat=new T.MeshStandardMaterial({vertexColors:true,roughness:.6,side:T.DoubleSide});
+  const mat=new T.MeshStandardMaterial({map:tx,roughness:.62,side:T.DoubleSide});
   const mesh=new T.SkinnedMesh(g,mat);mesh.add(bones[0]);mesh.updateMatrixWorld(true);mesh.bind(new T.Skeleton(bones));mesh.castShadow=mesh.receiveShadow=true;mesh.frustumCulled=false;
   const ra={};for(const s of'LR'){const A=bh[BI['uarm.'+s]],E=bh[BI['farm.'+s]],Wr=bt[BI['farm.'+s]],u=vnorm(vsub(Wr,A)),d=vsub(E,A);ra[s]=vnorm(vsub(d,vmul(u,vdot(d,u))))}
   return{mesh,bones,bh,bt,BI,par:J.parent,ra,reg:null,sh:null,eyes:[[0,0,0,.01],[0,0,0,.01]],Q:bones.map(()=>new T.Quaternion()),P:bones.map(()=>[0,0,0]),look:null,arm:[{},{}],leg:[{},{}],styl:true,model:true,mats:mat,gloveOff:J.gloveOff,clip:J.clip};
