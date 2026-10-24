@@ -127,7 +127,7 @@ button{font-family:inherit;cursor:pointer}
   <div class="card" id="mainCard">
     <div>
       <h1>RINGSIDE<span>32</span></h1>
-      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V31</span></p>
+      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V32</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
       <button id="go" class="big">SNABB MATCH</button>
@@ -464,7 +464,7 @@ class Fighter{
     const bounce=Math.sin(t*4.4+this.seed),bob=bounce*(this.stun>.5?.6:1.2)+Math.abs(Math.sin(this.walkPh))*1.2*Math.max(mv,mvW);
     const sl=this.slipA;
     const dd=Math.min(d,1.05),ss=Math.min(s,1.05);
-    let spA=.12+.46*dd-.36*ss+.1*Math.abs(sl),upA=.2+.5*dd-.42*ss,nkA=.3+.18*dd-.25*ss,px=-7*dd-6*ss+1.5*Math.abs(sl)+Math.sin(t*2.2+this.seed)*1.1,py=57-13*dd+bob-4*Math.abs(sl),tw=0;
+    let spA=.12+.46*dd-.36*ss+.1*Math.abs(sl),upA=.2+.5*dd-.42*ss,nkA=.3+.18*dd-.25*ss,px=-7*dd-6*ss+1.5*Math.abs(sl)+Math.sin(t*2.2+this.seed)*1.1,py=54-13*dd+bob-4*Math.abs(sl),tw=0;
     if(cl){spA+=.28;upA+=.2}
     // koreografi: varje led når sitt läge i tur och ordning (ben/höft först, sedan bål och sist armen)
     let rot=ROT0+.06*Math.sin(t*1.7+this.seed),hipR=ROT0*.7,heel=0,knee=0;
@@ -476,9 +476,9 @@ class Fighter{
     let hop=0;if(this.sideT>0){const k=1-this.sideT/.45;hop=Math.sin(k*Math.PI);py+=hop*5-2;spA+=.08*hop}
     if(this.stun>.15){upA+=Math.sin(t*5.3+this.seed)*this.stun*.12;nkA+=Math.sin(t*4.1)*this.stun*.35}
     const pel={x:px,y:py},
-      che={x:pel.x+Math.sin(spA)*28,y:pel.y+Math.cos(spA)*28},
-      nek={x:che.x+Math.sin(upA)*18,y:che.y+Math.cos(upA)*18},
-      hed={x:nek.x+Math.sin(nkA)*14.3,y:nek.y+Math.cos(nkA)*14.3};
+      che={x:pel.x+Math.sin(spA)*26,y:pel.y+Math.cos(spA)*26},
+      nek={x:che.x+Math.sin(upA)*16,y:che.y+Math.cos(upA)*16},
+      hed={x:nek.x+Math.sin(nkA)*13,y:nek.y+Math.cos(nkA)*13};
     const st=Math.min(1,this.stun*.8);let gF,gN;
     if(cl){const od=Math.abs(this.opp.root.x-this.root.x);gF={x:od+1,y:hed.y-22};gN={x:od-3,y:hed.y-31}}
     else if(this.blocking){if(d>.5){gF={x:hed.x+12,y:hed.y-15};gN={x:hed.x+10,y:hed.y-24}}else{gF={x:hed.x+11,y:hed.y-1};gN={x:hed.x+9,y:hed.y-6}}}
@@ -1752,6 +1752,24 @@ function boxerMesh(T,blue){
   return{mesh,bones,bh,bt,BI,par:J.parent,ra,reg:null,sh:null,eyes:[[0,0,0,.01],[0,0,0,.01]],Q:bones.map(()=>new T.Quaternion()),P:bones.map(()=>[0,0,0]),look:null,arm:[{},{}],leg:[{},{}],styl:true,model:true,mats,
     gloveOff:7,clip:{sp:[.9,.62],ch:[1.12,.76],hc:.42,hr:.42}};
 }
+// ---------- boxaren från din bild (TRELLIS-modell), förenklad till low poly och riggad till spelets skelett ----------
+let B3D=null;
+function glbMesh(T,blue){
+  const J=B3D.j,BI={};J.bones.forEach((n,i)=>BI[n]=i);const cp=(n,C)=>{const[o,l]=J.buf[n];return new C(B3D.b.slice(o,o+l))};
+  const p16=cp('pos',Int16Array),idx=cp('idx',Uint16Array),col=cp('col',Uint8Array),si=cp('si',Uint8Array),sw=cp('sw',Uint8Array),nt=idx.length/3;
+  const pos=new Float32Array(nt*9),c=new Float32Array(nt*9),SI=new Uint16Array(nt*12),SW=new Float32Array(nt*12);
+  for(let t=0;t<nt;t++){let r=col[t*3],g=col[t*3+1],b=col[t*3+2];
+    if(blue&&r>2.1*g&&r>2.1*b){const nr=g*.6,nb=r*1.05,ng=g*.9+r*.18;r=nr;g=ng;b=Math.min(255,nb)}
+    const L=v=>Math.pow(v/255,2.2);for(let k=0;k<3;k++){const i=idx[t*3+k],o=t*3+k;pos[o*3]=p16[i*3]/100;pos[o*3+1]=p16[i*3+1]/100;pos[o*3+2]=p16[i*3+2]/100;c[o*3]=L(r);c[o*3+1]=L(g);c[o*3+2]=L(b);
+      for(let a=0;a<4;a++){SI[o*4+a]=si[i*4+a];SW[o*4+a]=sw[i*4+a]/255}}}
+  const g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(pos,3));g.setAttribute('color',new T.BufferAttribute(c,3));g.setAttribute('skinIndex',new T.BufferAttribute(SI,4));g.setAttribute('skinWeight',new T.BufferAttribute(SW,4));g.computeVertexNormals();
+  const bh=J.rest.map(r=>r[0]),bt=J.rest.map(r=>r[1]),bones=J.bones.map(n=>{const b=new T.Bone();b.name=n;return b});
+  J.parent.forEach((p,i)=>{const h=bh[i];if(p<0)bones[i].position.set(h[0],h[1],h[2]);else{const q=bh[p];bones[i].position.set(h[0]-q[0],h[1]-q[1],h[2]-q[2]);bones[p].add(bones[i])}});
+  const mat=new T.MeshStandardMaterial({vertexColors:true,flatShading:true,roughness:.62,side:T.DoubleSide});
+  const mesh=new T.SkinnedMesh(g,mat);mesh.add(bones[0]);mesh.updateMatrixWorld(true);mesh.bind(new T.Skeleton(bones));mesh.castShadow=mesh.receiveShadow=true;mesh.frustumCulled=false;
+  const ra={};for(const s of'LR'){const A=bh[BI['uarm.'+s]],E=bh[BI['farm.'+s]],Wr=bt[BI['farm.'+s]],u=vnorm(vsub(Wr,A)),d=vsub(E,A);ra[s]=vnorm(vsub(d,vmul(u,vdot(d,u))))}
+  return{mesh,bones,bh,bt,BI,par:J.parent,ra,reg:null,sh:null,eyes:[[0,0,0,.01],[0,0,0,.01]],Q:bones.map(()=>new T.Quaternion()),P:bones.map(()=>[0,0,0]),look:null,arm:[{},{}],leg:[{},{}],styl:true,model:true,mats:mat,gloveOff:J.gloveOff,clip:J.clip};
+}
 function hq(){if(!HQ){const T=T3;HQ={m1:new T.Matrix4(),m2:new T.Matrix4(),m3:new T.Matrix4(),q:new T.Quaternion(),q2:new T.Quaternion(),v:new T.Vector3(),s:new T.Vector3()}}return HQ}
 function qrot(q,a){const v=hq().v.set(a[0],a[1],a[2]).applyQuaternion(q);return[v.x,v.y,v.z]}
 // rotation som för vilo-ramen (riktning + hjälpvektor) till världsramen
@@ -2086,7 +2104,7 @@ function init3D(THREE){
     o.mouth=new T.Mesh(new T.BoxGeometry(1,1,1),dark);o.mouth.matrixAutoUpdate=false;grp.add(o.mouth);
     if(HUM){try{
       const hs=new T.MeshStandardMaterial({vertexColors:true,color:0xffffff,roughness:.5,flatShading:true,side:T.DoubleSide});
-      o.hum=stylMesh(T,f.idx?'b':'a',hs);grp.add(o.hum.mesh);o.skin=o.torsoM=o.hum.mats||hs;o.xr=buildXray(T,o);
+      o.hum=B3D?glbMesh(T,f.idx===1):stylMesh(T,f.idx?'b':'a',hs);grp.add(o.hum.mesh);o.skin=o.torsoM=o.hum.mats||hs;o.xr=buildXray(T,o);
       {const h=o.hum,hi=h.BI.head,H0=h.bh[hi],H1=h.bt[hi],hh=Math.hypot(...vsub(H1,H0)),g=new T.SphereGeometry(1,9,6,0,Math.PI*2,0,Math.PI*.56),pa=g.attributes.position;
         for(let i=0;i<pa.count;i++){const x=pa.getX(i),y=pa.getY(i),z=pa.getZ(i),n=1+.1*Math.sin(x*9+z*7)*Math.sin(y*11+x*5)+.06*Math.sin(z*17);pa.setXYZ(i,x*n,y*n,z*n)}g.computeVertexNormals();
         const hair=new T.Mesh(g,new T.MeshStandardMaterial({color:0x3b2416,roughness:.8,flatShading:true}));const c=vadd(vlerp(H0,H1,.5),[0,hh*.03,-hh*.06]);hair.position.set(c[0]-H0[0],c[1]-H0[1],c[2]-H0[2]);hair.scale.set(hh*.47,hh*.5,hh*.55);hair.rotation.x=-.42;hair.castShadow=true;h.bones[hi].add(hair);o.hair=hair}
@@ -2282,8 +2300,8 @@ fit();addEventListener('resize',fit);
 bounds();F[0].reset(250);F[1].reset(390);game.cam=320-W/2;
 requestAnimationFrame(frame);
 if(location.protocol.startsWith('http')){const hj=fetch('human.json').then(r=>r.ok?r.json():null).catch(()=>null),hb=fetch('human.bin').then(r=>r.ok?r.arrayBuffer():null).catch(()=>null);
-  const bx=Promise.resolve(null);
-  Promise.all([import('./three.module.min.js'),hj,hb,import('./cannon-es.js').catch(()=>null),bx]).then(([m,j,b,c,x])=>{if(j&&b)HUM={j,b};if(c)CANNON=c;if(x)BOX=x;try{init3D(m)}catch(e){console.error('3D av:',e);R3=null}}).catch(e=>console.warn('Three.js kunde inte laddas',e))}
+  const bx=Promise.all([fetch('boxer3d.json').then(r=>r.ok?r.json():null),fetch('boxer3d.bin').then(r=>r.ok?r.arrayBuffer():null)]).catch(()=>[null,null]);
+  Promise.all([import('./three.module.min.js'),hj,hb,import('./cannon-es.js').catch(()=>null),bx]).then(([m,j,b,c,x])=>{if(j&&b)HUM={j,b};if(c)CANNON=c;if(x&&x[0]&&x[1])B3D={j:x[0],b:x[1]};try{init3D(m)}catch(e){console.error('3D av:',e);R3=null}}).catch(e=>console.warn('Three.js kunde inte laddas',e))}
 })();
 </script>
 <div id="crt"></div><div id="tvframe"></div>
