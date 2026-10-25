@@ -21,7 +21,7 @@ canvas{position:absolute;left:0;top:0;display:block}
 #ui{pointer-events:none}
 #ctl{position:absolute;inset:0}
 .hide{display:none!important}
-#hud{position:absolute;inset:0;pointer-events:none;transition:opacity .2s}
+#hud{position:absolute;left:5.6%;top:7.5%;width:75.8%;height:85%;pointer-events:none;transition:opacity .2s}  /* inne i TV-röret */
 #hud.cine{opacity:0}
 body.cine #msg{opacity:0!important}
 #hud.train .l .hp,#hud.train .l .gd,#hud.train .r .st,#hud.train .r .gd{display:none}
@@ -99,7 +99,7 @@ button{font-family:inherit;cursor:pointer}
 .cnote{font-size:6.5px;color:#aaa;line-height:1.7;margin:6px 0 12px}
 #crt{position:fixed;inset:0;pointer-events:none;z-index:9999;border-radius:6vh/8vh;box-shadow:inset 0 0 0 2.2vh #0b0a0c,inset 0 0 0 2.8vh #1d1b20,inset 0 0 6vh 3.5vh rgba(0,0,0,.9),inset 0 0 18vh rgba(0,0,0,.55);background:repeating-linear-gradient(to bottom,rgba(0,0,0,.18) 0 1px,transparent 1px 3px),radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.5) 100%);animation:crtf .12s steps(2) infinite}
 #tvframe{display:none}
-#room{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
+#room,#tvfx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
 #crt::after{content:'';position:absolute;inset:0;border-radius:inherit;background:radial-gradient(ellipse 70% 45% at 30% 18%,rgba(255,255,255,.07),transparent 60%),linear-gradient(rgba(255,255,255,.03),transparent 40%,rgba(255,255,255,.02));}
 @keyframes crtf{50%{opacity:.93}}
 @media (prefers-reduced-motion:reduce){#crt{animation:none}}
@@ -110,6 +110,7 @@ button{font-family:inherit;cursor:pointer}
 <body>
 <canvas id="cv"></canvas>
 <canvas id="room"></canvas>
+<canvas id="tvfx"></canvas>
 <canvas id="ui"></canvas>
 <div id="ctl"></div>
 <div id="hud" class="hide">
@@ -129,7 +130,7 @@ button{font-family:inherit;cursor:pointer}
   <div class="card" id="mainCard">
     <div>
       <h1>RINGSIDE<span>32</span></h1>
-      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V38</span></p>
+      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V39</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
       <div class="diff" id="bwRow"><button data-bw="0" class="on">FÄRG-TV</button><button data-bw="1">SVARTVIT 50-TALS-TV</button></div>
@@ -1067,7 +1068,7 @@ function knockdown(f){
     game.cine={f,part:L.body?'body':'head',off:[sx*2,0,0],yaw:-sx*.55,dist:L.body?150:138,rt:.3,kz:1,hit:true,hitRt:0,rip:rp,xr:xrayPhysics(L.a,f,L.pu,L.zone,L.dmg,L.body),label:ZM[L.zone]&&ZM[L.zone].lab||'KNOCKOUT',zone:L.zone,retro:true};game.slow=0}}
   {const L=f.lastHit,xr=game.cine&&game.cine.f===f&&game.cine.xr||(L&&game.t-L.t<1.5?xrayPhysics(L.a,f,L.pu,L.zone,L.dmg,L.body):null);if(xr)f.pendInj={inj:injFrom(xr),sd:L?(sideZ(L.a,L.pu)||1):1}}
   if(f.kdR>=3){endMatch(f.opp,'TKO');return}
-  flashes(18);say('down',true);
+  flashes(18);say('down',true);if(f===F[0])tvAnger(false);
   game.downF=f;game.state='count';game.count=0;game.countT=-.6;if(game.cine)game.cine.after='NERE!';else showMsg('NERE!',1.1);
   if(f.isAI){const ch=(f.hp<=0?.55:.9)-(f.kd-1)*.22+(game.diffKey==='latt'?-.15:game.diffKey==='svar'?.12:0);f.riseAt=Math.random()<ch?Math.floor(rand(3,9.5)):99}
 }
@@ -1085,6 +1086,7 @@ function scoreRound(){
   game.lastCard='DOMARE: '+rc.join(' · ');A.rd=B.rd=0;A.penR=B.penR=0;A.clinches=B.clinches=0;
 }
 function endMatch(w,how,cards){
+  if(w!==F[0]&&game.mode==='match')tvAnger(true);
   game.state='over';game.overT=3.8;SFX.bell();SFX.cheer(1);game.clinch=null;$('#corner').classList.add('hide');
   const big=how==='KO'?'K.O.!':how==='TKO'||how==='DOC'?'T.K.O.!':how==='DRAW'?'OAVGJORT':'POÄNGSEGER';
   const sub2=how==='DOC'?'LÄKAREN STOPPAR MATCHEN':cards||'';
@@ -2653,8 +2655,54 @@ function roomDraw(){const cv=ROOM.cv||(ROOM.cv=document.getElementById('room'));
     c.beginPath();c.ellipse(px,py-s*.6,s*.15,s*.18,0,0,6.283);c.fill();
     c.strokeStyle='rgba(140,160,190,.3)';c.lineWidth=2;c.beginPath();c.ellipse(px,py-s*.6,s*.15,s*.18,0,-2.6,-.5);c.stroke();c.restore()}
 }
+// ---------- tittaren blir arg: öl (och ibland pizza) kastas mot TV:n ----------
+const TV={q:[],fly:[],stains:[],drops:[],arm:0,cv:null};
+function tvRect(){const W0=innerWidth,H0=innerHeight;return{x:W0*.035,y:H0*.06,w:W0*.79,h:H0*.88}}
+function tvThrow(kind,delay=0){TV.q.push({kind,delay})}
+function tvAnger(lost){if(game.mode!=='match')return;tvThrow('beer',.15);if(lost||Math.random()<.35)tvThrow('pizza',lost?1.1:.9);if(lost&&Math.random()<.5)tvThrow('beer',2)}
+function tvImpact(f){const r=tvRect();game.shake=Math.max(game.shake,6);vib([30,20,40]);
+  if(AC){nz(.35,'bandpass',900,.8,.5,300);os(160,60,.18,.35);if(f.kind==='beer'){nz(.6,'highpass',2500,.6,.25,6000);os(2600,1900,.08,.05,'triangle',.02)}else nz(.15,'lowpass',500,.7,.4)}
+  if(f.kind==='beer'){const n=70+Math.random()*40|0;for(let i=0;i<n;i++){const a=Math.random()*6.283,sp=60+Math.random()*Math.random()*520;TV.drops.push({x:f.tx,y:f.ty,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp*.8-60,r:1.2+Math.random()*4,life:1,stuck:false})}
+    TV.stains.push({k:'foam',x:f.tx,y:f.ty,r:26+Math.random()*24,t:0,seed:Math.random()*99});
+    for(let i=0;i<8;i++)TV.stains.push({k:'run',x:f.tx+(Math.random()-.5)*60,y:f.ty+(Math.random()-.5)*30,len:0,v:18+Math.random()*30,w:2+Math.random()*4,t:0,max:r.y+r.h-f.ty+40})}
+  else TV.stains.push({k:'pizza',x:f.tx,y:f.ty,rot:f.rot,t:0,vy:0,sy:f.ty})}
+function tvFx(rdt){
+  const cv=TV.cv||(TV.cv=document.getElementById('tvfx'));if(!cv)return;const dpr=Math.min(1.5,devicePixelRatio||1),W0=innerWidth,H0=innerHeight;
+  if(cv.width!==Math.round(W0*dpr)||cv.height!==Math.round(H0*dpr)){cv.width=Math.round(W0*dpr);cv.height=Math.round(H0*dpr)}
+  const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);
+  const busy=TV.q.length||TV.fly.length||TV.stains.length||TV.drops.length||TV.arm>0;if(!busy){if(TV.drawn){c.clearRect(0,0,W0,H0);TV.drawn=false}return}
+  TV.drawn=true;c.clearRect(0,0,W0,H0);const r=tvRect(),dt=rdt;
+  // vänta tills röntgen/slow motion är klar
+  if(!game.cine)for(let i=TV.q.length-1;i>=0;i--){const q=TV.q[i];q.delay-=dt;if(q.delay<=0){TV.q.splice(i,1);const sx=W0*.09,sy=H0*.86,tx=r.x+r.w*(.25+Math.random()*.5),ty=r.y+r.h*(.22+Math.random()*.45);TV.fly.push({kind:q.kind,sx,sy,tx,ty,t:0,dur:.5+Math.random()*.12,rot:Math.random()*6,spin:(Math.random()<.5?-1:1)*(8+Math.random()*6)});TV.arm=.6}}
+  // tittarens arm (kaströrelse)
+  if(TV.arm>0){TV.arm-=dt;const k=1-TV.arm/.6,ang=-2.6+k*2.4,s=H0*.36,px=W0*.075,py=H0+s*.26-s*.33,ax=px+s*.3,ay=py;c.save();c.strokeStyle='#0b0807';c.lineCap='round';c.lineWidth=s*.11;c.beginPath();c.moveTo(ax,ay);const ex=ax+Math.cos(ang)*s*.3,ey=ay+Math.sin(ang)*s*.3;c.lineTo(ex,ey);c.lineTo(ex+Math.cos(ang+.5)*s*.26,ey+Math.sin(ang+.5)*s*.26);c.stroke();c.restore()}
+  // kvar på glaset: skum, rinnande öl, pizza
+  for(let i=TV.stains.length-1;i>=0;i--){const s=TV.stains[i];s.t+=dt;
+    if(s.k==='foam'){const a=Math.max(0,1-s.t/9);if(a<=0){TV.stains.splice(i,1);continue}c.save();c.globalAlpha=a;for(let k=0;k<14;k++){const an=k*2.4+s.seed,d=s.r*(.2+((k*37+s.seed*7)%10)/12),x=s.x+Math.cos(an)*d,y=s.y+Math.sin(an)*d*.7+s.t*3;const g=c.createRadialGradient(x,y,0,x,y,s.r*.45);g.addColorStop(0,'rgba(255,248,225,.85)');g.addColorStop(.6,'rgba(250,236,190,.45)');g.addColorStop(1,'rgba(240,210,140,0)');c.fillStyle=g;c.beginPath();c.arc(x,y,s.r*.45,0,6.283);c.fill()}
+      const g=c.createRadialGradient(s.x,s.y,0,s.x,s.y,s.r*2.2);g.addColorStop(0,'rgba(220,150,30,.28)');g.addColorStop(1,'rgba(220,150,30,0)');c.fillStyle=g;c.beginPath();c.arc(s.x,s.y,s.r*2.2,0,6.283);c.fill();c.restore()}
+    else if(s.k==='run'){s.len=Math.min(s.max,s.len+s.v*dt*(1/(1+s.t*.2)));const a=Math.max(0,1-s.t/11);if(a<=0){TV.stains.splice(i,1);continue}c.save();c.globalAlpha=a;const g=c.createLinearGradient(s.x,s.y,s.x,s.y+s.len);g.addColorStop(0,'rgba(230,160,40,.5)');g.addColorStop(1,'rgba(230,160,40,.15)');c.strokeStyle=g;c.lineWidth=s.w;c.lineCap='round';c.beginPath();c.moveTo(s.x,s.y);c.quadraticCurveTo(s.x+Math.sin(s.y)*4,s.y+s.len*.5,s.x+Math.sin(s.x)*3,s.y+s.len);c.stroke();
+      c.fillStyle='rgba(255,220,140,.55)';c.beginPath();c.arc(s.x+Math.sin(s.x)*3,s.y+s.len,s.w*.9,0,6.283);c.fill();c.restore()}
+    else if(s.k==='pizza'){if(s.t>1.6){s.vy+=dt*70;s.y+=s.vy*dt}if(s.y>r.y+r.h+80){TV.stains.splice(i,1);continue}
+      // tomatsås-smet efter pizzan
+      if(s.y>s.sy+2){c.save();c.globalAlpha=Math.max(0,1-s.t/14);const g=c.createLinearGradient(0,s.sy,0,s.y);g.addColorStop(0,'rgba(190,40,20,.55)');g.addColorStop(1,'rgba(190,60,20,.2)');c.fillStyle=g;c.beginPath();c.moveTo(s.x-22,s.sy);c.lineTo(s.x+22,s.sy);c.lineTo(s.x+16,s.y);c.lineTo(s.x-16,s.y);c.closePath();c.fill();c.restore()}
+      const sq=s.t<.15?1+.25*(1-s.t/.15):1;pizza(c,s.x,s.y,Math.min(W0,H0)*.13,s.rot,sq,1)}}
+  // stänk som flyger och fastnar
+  for(let i=TV.drops.length-1;i>=0;i--){const d=TV.drops[i];if(!d.stuck){d.vy+=dt*500;d.x+=d.vx*dt;d.y+=d.vy*dt;d.vx*=.92;d.vy*=.92;if(Math.hypot(d.vx,d.vy)<40||Math.random()<dt*3)d.stuck=true}else{d.y+=dt*(4+d.r*3);d.life-=dt/8}
+    if(d.life<=0||d.y>H0){TV.drops.splice(i,1);continue}c.fillStyle=`rgba(${d.stuck?'240,190,90':'250,215,120'},${.7*d.life})`;c.beginPath();c.ellipse(d.x,d.y,d.r,d.r*(d.stuck?1.3:1),0,0,6.283);c.fill();c.fillStyle=`rgba(255,255,255,${.5*d.life})`;c.beginPath();c.arc(d.x-d.r*.3,d.y-d.r*.3,d.r*.3,0,6.283);c.fill()}
+  // föremål i luften
+  for(let i=TV.fly.length-1;i>=0;i--){const f=TV.fly[i];f.t+=dt;const k=Math.min(1,f.t/f.dur),x=lerp(f.sx,f.tx,k),y=lerp(f.sy,f.ty,k)-Math.sin(k*Math.PI)*H0*.28,sc=lerp(2.2,1,k),rot=f.rot+f.spin*f.t;
+    if(f.kind==='beer'){c.save();c.translate(x,y);c.rotate(rot);c.scale(sc,sc);const s=Math.min(W0,H0)*.05;c.fillStyle='#5a2e0c';c.beginPath();c.moveTo(-s*.32,s);c.lineTo(s*.32,s);c.lineTo(s*.32,-s*.2);c.lineTo(s*.12,-s*.5);c.lineTo(s*.12,-s);c.lineTo(-s*.12,-s);c.lineTo(-s*.12,-s*.5);c.lineTo(-s*.32,-s*.2);c.closePath();c.fill();
+      c.fillStyle='#e8d090';c.fillRect(-s*.32,s*.05,s*.64,s*.45);c.fillStyle='#b02020';c.fillRect(-s*.32,s*.2,s*.64,s*.12);c.fillStyle='rgba(255,255,255,.35)';c.fillRect(-s*.24,-s*.15,s*.08,s*.9);c.restore()}
+    else pizza(c,x,y,Math.min(W0,H0)*.13*sc,rot,1,1);
+    if(k>=1){TV.fly.splice(i,1);tvImpact(f);game.flash=Math.max(game.flash,.15)}}
+}
+function pizza(c,x,y,s,rot,sq,a){c.save();c.globalAlpha=a;c.translate(x,y);c.rotate(rot);c.scale(sq,1/sq);
+  c.fillStyle='#d79a4a';c.beginPath();c.moveTo(0,s*.55);c.lineTo(-s*.42,-s*.45);c.quadraticCurveTo(0,-s*.62,s*.42,-s*.45);c.closePath();c.fill();
+  c.fillStyle='#f2c64a';c.beginPath();c.moveTo(0,s*.45);c.lineTo(-s*.34,-s*.36);c.quadraticCurveTo(0,-s*.5,s*.34,-s*.36);c.closePath();c.fill();
+  c.fillStyle='#b8261a';for(const[px,py]of[[0,-.25],[-.15,-.05],[.13,.0],[0,.2],[.18,-.3],[-.2,-.32]]){c.beginPath();c.arc(px*s,py*s,s*.065,0,6.283);c.fill()}
+  c.strokeStyle='rgba(255,240,180,.6)';c.lineWidth=1.5;c.beginPath();c.moveTo(-s*.1,s*.3);c.quadraticCurveTo(-s*.12,s*.5,-s*.08,s*.62);c.stroke();c.restore()}
 // ---------- loop ----------
-const STEP=1/120;let last=performance.now(),acc=0;if(window.__noperf)window.__G={step:n=>{for(let i=0;i<n;i++)step(STEP)},F,game,AR,CAM,draw:()=>{if(R3)render3(0)},R:()=>R3};
+const STEP=1/120;let last=performance.now(),acc=0;if(window.__noperf)window.__G={step:n=>{for(let i=0;i<n;i++)step(STEP)},F,game,AR,CAM,tv:l=>tvAnger(l),draw:()=>{if(R3)render3(0)},R:()=>R3};
 function frame(now){
   requestAnimationFrame(frame);
   const rdt=Math.min(.05,(now-last)/1000);last=now;
@@ -2674,7 +2722,7 @@ function frame(now){
   let mid=(a+b)/2;if(RING_R-RING_L>260)mid=clamp(mid,RING_L+130,RING_R-130);
   game.cam+=(mid-W/2-game.cam)*Math.min(1,rdt*5);
   if(msgT>0){msgT-=rdt;if(msgT<=0)msgEl.classList.remove('on')}
-  {const zt=game.state==='menu'?.38:1;ROOM.z+=(zt-ROOM.z)*Math.min(1,rdt*2.2);if(Math.abs(zt-ROOM.z)<.002)ROOM.z=zt;roomDraw()}
+  {const zt=game.state==='menu'?.38:1;ROOM.z+=(zt-ROOM.z)*Math.min(1,rdt*2.2);if(Math.abs(zt-ROOM.z)<.002)ROOM.z=zt;roomDraw();tvFx(rdt)}
   if(R3){try{render3(rdt);perf3(rdt)}catch(e){console.error(e);drop3()}}else render(rdt);drawUI(rdt);if(game.state!=='menu')hud(rdt);
 }
 fit();addEventListener('resize',fit);
