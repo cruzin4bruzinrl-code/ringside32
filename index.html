@@ -141,7 +141,7 @@ button{font-family:inherit;cursor:pointer}
   <div class="card" id="mainCard">
     <div>
       <h1>RINGSIDE<span>32</span></h1>
-      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V41</span></p>
+      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V42</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
       <button id="go" class="big">SNABB MATCH</button>
@@ -472,7 +472,7 @@ class Fighter{
   }
   reset(x){
     Object.assign(this,{hp:100,lag:100,body:100,stam:100,stun:0,toneDip:0,headDip:0,tone:1,punch:null,buf:null,down:false,rising:0,kd:0,kdR:0,score:0,duckA:0,swayA:0,walkPh:0,mash:0,blocking:false,trail:[],riseAt:99,sideT:0,
-      guard:100,inj:{},injSide:{},pendInj:null,zh:{},guardBreakT:0,blockStart:-9,wasBlock:false,counterT:0,angleT:0,rd:0,inQ:[],zKick:0,stance:1,swell:[0,0],cut:0,cutSide:1,liverT:0,liverFold:false,rip:[],critT:0,slipA:0,dodge:null,dodgeCD:0,feintT:0,clinches:0,penR:0,corner:null,focus:1});
+      guard:100,inj:{},injSide:{},pendInj:null,zh:{},wobT:0,dbl:0,guardBreakT:0,blockStart:-9,wasBlock:false,counterT:0,angleT:0,rd:0,inQ:[],zKick:0,stance:1,swell:[0,0],cut:0,cutSide:1,liverT:0,liverFold:false,rip:[],critT:0,slipA:0,dodge:null,dodgeCD:0,feintT:0,clinches:0,penR:0,corner:null,focus:1});
     this.face=this.idx?-1:1;this.root.x=x;this.root.vx=0;this.ai.q=[];this.ai.t=.5;
     this.computeTargets(0,0);for(const q of this.p){q.x=q.tx;q.y=q.ty;q.vx=q.vy=0}
     if(!this.bones)this.makeBones();
@@ -581,7 +581,7 @@ class Fighter{
     const o=this.opp,B=PT[type],cross=hand&&type==='straight';
     this.stam=Math.max(0,this.stam-(mods.feint?1.5:B.c*(cross?1.6:1)*(hay?2.2:1)*(2-this.sKond)));
     const aimDy=mods.aimDy||0;
-    const sp=this.sSpd*(mods.wind||1);let w=B.w*(cross?1.45:1),r=B.r;if(hay){w*=1.9;r*=1.3}
+    const sp=this.sSpd*(mods.wind||1)*(hand&&this.inj&&(this.inj.ribs||this.inj.liver)?1.18:1);let w=B.w*(cross?1.45:1),r=B.r;if(hay){w*=1.9;r*=1.3}
     let dmg=B.d*(hand?(type==='straight'?1.7:1.12):1)*(hay?1.85:1)*(mods.pow||1)*this.sPow*this.focus;
     if(o.stance&&o.stance!==this.stance&&cross)dmg*=1.12;
     this.punch={type,hand,body,hay,aim:{x:0,y:0},noise:rand(-1.2,1.2)+(this.stun>.5?rand(-3,3):0),w:w*sp,st:B.s*this.sSpd*(mods.stS||1),zdev:mods.zdev||null,r:r*sp,t:0,phase:'wind',s:0,k:0,hit:false,dmg,seen:false,wz:mods.wz||20,dip:mods.dip||0,aimDy,feint:!!mods.feint};
@@ -621,6 +621,7 @@ class Fighter{
     const rr=Math.min(1,dt*34);this.duckA+=(dk-this.duckA)*rr;this.swayA+=(sw-this.swayA)*rr;this.slipA+=(sl-this.slipA)*rr;
     const sp=78*(1-Math.min(.6,this.stun*.4))*(this.duckA>.5?.45:1)*(this.blocking?.6:1);
     this.root.vx+=((act?c.move*sp:0)-this.root.vx)*Math.min(1,dt*7);
+    if(this.wobT>0&&act){this.wobT-=dt;const w=Math.min(1,this.wobT/2);this.root.vx+=Math.sin(t*2.7+this.seed)*55*w*dt*7;this.stun=Math.max(this.stun,.45*w)}
     if(this.down)this.root.x=this.p[3].x;else this.root.x+=this.root.vx*dt;
     if(this.root.x<RING_L+22){this.root.x=RING_L+22;if(this.root.vx<0)this.root.vx*=-.4}
     if(this.root.x>RING_R-22){this.root.x=RING_R-22;if(this.root.vx>0)this.root.vx*=-.4}
@@ -628,7 +629,7 @@ class Fighter{
     this.sideT=Math.max(0,this.sideT-dt);
     if(!this.punch)this.stam=Math.min(60+40*this.body/100,this.stam+dt*(this.blocking?5:12)*(this.stun>.5?.5:1)*this.sKond*(1-.3*((this.inj&&this.inj.ribs)||0)-.35*((this.inj&&this.inj.solar)||0)));
     this.stam=Math.max(0,this.stam-(this.duckA+this.swayA+Math.abs(this.slipA))*dt*3.2);
-    this.stun=Math.max(0,this.stun-dt*.5*(1-.45*((this.inj&&this.inj.brain)||0)));if(this.inj&&this.inj.nose&&!this.down&&Math.random()<dt*.5*this.inj.nose)blood(this.p[0].x+this.face*8,this.p[0].y+4,this.zs[0],1,this.face*.3);this.toneDip=Math.max(0,this.toneDip-dt*2);this.headDip=Math.max(0,this.headDip-dt*3.5);
+    this.stun=Math.max(0,this.stun-dt*.5*(1-.45*((this.inj&&this.inj.brain)||0)));this.dbl=Math.max(0,(this.dbl||0)-dt*.5);if(this.inj&&this.inj.nose&&!this.down&&Math.random()<dt*.5*this.inj.nose)blood(this.p[0].x+this.face*8,this.p[0].y+4,this.zs[0],1,this.face*.3);this.toneDip=Math.max(0,this.toneDip-dt*2);this.headDip=Math.max(0,this.headDip-dt*3.5);
     if(this.rising>0){this.rising+=dt/1.1;if(this.rising>=1)this.rising=0}
     const base=this.rising>0?.02+.98*ease(this.rising):1-Math.min(1,this.stun)*.45;
     this.tone=this.down?.02:Math.max(.1,base-this.toneDip);
@@ -928,7 +929,7 @@ function showMsg(t,dur,sub){msgEl.innerHTML=t+(sub?`<small>${sub}</small>`:'');m
 // 50-talskommentatorn och publikens kamerablixtar
 const COM={t:'',a:0,last:0},FLASH=[];
 const CL={big:['Vilken smäll!','Han träffar rent!','Det där kände han!','Publiken står upp!','En fullträff, mina damer och herrar!'],hook:['En vänsterkrok som heter duga!','Krok – rakt på käken!','Vilken krok!'],upper:['Uppercut under hakan!','Han lyfter honom med en uppercut!'],
-  body:['Till kroppen – det tar på krafterna!','Ett slag mot levern!','Han jobbar på kroppen!'],dodge:['Snyggt undanvikt!','Han pendlar undan!','Luft! Han missar!'],down:['HAN ÄR NERE! HAN ÄR NERE!','Golvad! Domaren börjar räkna!','Det här kan vara slutet!'],up:['Han reser sig! Vilket hjärta!','Han är uppe igen – men hur länge?'],round:['Klockan ringer – här kör vi!','Ny rond, mina vänner!'],end:['Där gick klockan!','Ronden är slut – vilket tempo!']};
+  body:['Till kroppen – det tar på krafterna!','Ett slag mot levern!','Han jobbar på kroppen!'],dodge:['Snyggt undanvikt!','Han pendlar undan!','Luft! Han missar!'],injRibs:['Han håller sig om sidan – revbenen är skadade!','Rakt på de spruckna revbenen!'],injJaw:['Rakt på den brutna käken!','Käken – han tål inte mer där!'],injEye:['Ögat stänger sig!','Han ser inte på det ögat längre!'],injBrain:['Han är groggy – benen bär inte!','Hjärnskakningen sitter i!'],cut:['Det blöder ordentligt nu!','Cuten öppnar sig igen!'],down:['HAN ÄR NERE! HAN ÄR NERE!','Golvad! Domaren börjar räkna!','Det här kan vara slutet!'],up:['Han reser sig! Vilket hjärta!','Han är uppe igen – men hur länge?'],round:['Klockan ringer – här kör vi!','Ny rond, mina vänner!'],end:['Där gick klockan!','Ronden är slut – vilket tempo!']};
 function say(k,force){const now=performance.now();if(!force&&now-COM.last<2600)return;const L=CL[k];if(!L)return;COM.t=L[Math.random()*L.length|0];COM.a=3.2;COM.last=now}
 function flashes(n){for(let i=0;i<n;i++)FLASH.push({x:Math.random(),y:.22+Math.random()*.22,t:.12+Math.random()*.1,d:Math.random()*.5})}
 function pop(s,c,y){for(let i=pops.length-1;i>=0;i--)if(pops[i].y===y)pops.splice(i,1);pops.push({s,c,y,t:.8})}
@@ -1020,7 +1021,7 @@ function land(a,b,pu,body,g){
   b.rip.push({part,off,age:0,amp:crit?3.4:1+dmg*.07,crit,w:[0,0,0]});if(b.rip.length>4)b.rip.shift();
   if(crit)b.critT=.5;
   if(!body){
-    b.mxHit={body:false,dmg,sd,hook:pu.type==='hook'||pu.type==='over',crit};b.hp-=dmg;b.stun+=dmg*.034*(counter?1.35:1)*Z.s*(1+.6*((b.inj&&b.inj.brain)||0)+(zone==='KAKE'&&b.inj&&b.inj.jaw?.5*b.inj.jaw:0));if(b.inj&&b.inj.nose)blood(P[0].x+b.face*9,P[0].y+3,b.zs[0],3+(dmg|0),a.face);b.toneDip=Math.min(.85,b.toneDip+dmg*.04*Z.s);b.headDip=Math.min(.95,b.headDip+dmg*.08);
+    b.mxHit={body:false,dmg,sd,hook:pu.type==='hook'||pu.type==='over',crit};if(b===F[0]&&(dmg>=7||(b.inj&&b.inj.brain))){b.dbl=Math.min(1.4,(b.dbl||0)+dmg/12+((b.inj&&b.inj.brain)||0)*.5);if(AC&&dmg>=8)os(4200,4100,1.6,.03,'sine',.05)}b.hp-=dmg;b.stun+=dmg*.034*(counter?1.35:1)*Z.s*(1+.6*((b.inj&&b.inj.brain)||0)+(zone==='KAKE'&&b.inj&&b.inj.jaw?.5*b.inj.jaw:0));if(b.inj&&b.inj.nose)blood(P[0].x+b.face*9,P[0].y+3,b.zs[0],3+(dmg|0),a.face);{const J=b.inj||{};if(zone==='KAKE'&&J.jaw)say('injJaw',true);else if(J.brain&&dmg>=6)say('injBrain');else if(Math.max(...b.swell)>2)say('injEye');else if(b.cut>=2&&dmg>=6)say('cut')}b.toneDip=Math.min(.85,b.toneDip+dmg*.04*Z.s);b.headDip=Math.min(.95,b.headDip+dmg*.08);
     b.zKick=clamp(b.zKick-sd*dmg*(pu.type==='hook'?.9:.2),-12,12);b.hyV=(b.hyV||0)-sd*dmg*(pu.type==='hook'||pu.type==='over'?.55:.15)*(crit?1.5:1);
     b.swell[sd>0?1:0]=Math.min(3,b.swell[sd>0?1:0]+dmg*.05);
     if(dmg>=8&&(zone==='TINNING'||zone==='NASA')&&Math.random()<.3&&b.cut<5){b.cut++;b.cutSide=sd;pop(b.cut>=3?'DJUP CUT!':'CUT!','#ff4a4a',.18)}
@@ -1034,7 +1035,7 @@ function land(a,b,pu,body,g){
     b.body-=bd;b.hp-=dmg*.3;b.stam=Math.max(0,b.stam-dmg*(zone==='SOLAR'?3:1.3));b.stun+=dmg*.025+(zone==='SOLAR'?.25:0);b.toneDip=Math.min(.7,b.toneDip+dmg*.03);
     b.zh=b.zh||{};b.zh[zone]=(b.zh[zone]||0)+1;
     {const bf=1-clamp(b.body,0,100)/100,n=b.zh[zone],J=b.inj||{},s01=x=>clamp(x,0,1);let pk=0;
-      if(zone==='SOLAR')pk=s01((dmg-5.5)/9)*(.08+bf*.55+.06*(n-1))+(J.solar?.12:0);
+      if((zone==='REVBEN'||zone==='MAGE'||zone==='LEVER')&&(J.ribs||J.liver))say('injRibs',true);if(zone==='SOLAR')pk=s01((dmg-5.5)/9)*(.08+bf*.55+.06*(n-1))+(J.solar?.12:0);
       else if(zone==='REVBEN'||zone==='MAGE')pk=s01((dmg-6.5)/9)*(bf*bf*.65+.04*(n-1))+(J.ribs?.12:0);
       if(b.body<=0&&dmg>=6)pk=Math.max(pk,.7);
       if(zone!=='LEVER'&&!b.liverFold&&Math.random()<pk){b.liverT=.55;b.liverFold=true;pop(zone==='SOLAR'?'ANDNINGEN STANNAR!':'REVBENEN!','#ff6a4a',.3)}}
@@ -1099,7 +1100,7 @@ function injFrom(xr){const c=x=>clamp(x,0,1),I={};if(!xr)return I;
   if(!xr.body){I.brain=c(xr.brain);if(xr.zone==='KAKE')I.jaw=c(xr.frac);else if(xr.zone==='NASA')I.nose=Math.max(.35,c(xr.frac));else if(xr.frac>0)I.skull=c(xr.frac)}
   else if(xr.zone==='LEVER')I.liver=Math.max(.3,c(xr.organ||xr.F/4500));else if(xr.zone==='SOLAR')I.solar=Math.max(.3,c(xr.organ||0));else I.ribs=c(xr.frac||0);
   for(const k in I)if(I[k]<.05)delete I[k];return I}
-function rise(f){f.down=false;say('up',true);if(f.pendInj){const P=f.pendInj,nm=[];f.inj=f.inj||{};f.injSide=f.injSide||{};for(const k in P.inj){if(!(f.inj[k]>=P.inj[k]))nm.push(k);f.inj[k]=Math.max(f.inj[k]||0,P.inj[k]);f.injSide[k]=P.sd}f.pendInj=null;
+function rise(f){f.down=false;say('up',true);f.wobT=4.5;if(f.pendInj){const P=f.pendInj,nm=[];f.inj=f.inj||{};f.injSide=f.injSide||{};for(const k in P.inj){if(!(f.inj[k]>=P.inj[k]))nm.push(k);f.inj[k]=Math.max(f.inj[k]||0,P.inj[k]);f.injSide[k]=P.sd}f.pendInj=null;
     if(nm.length)setTimeout(()=>showMsg('SKADOR',2.6,nm.map(k=>INJN[k]+' – '+INJD[k]).join('<br>')),900)}f.rising=.001;f.root.x=clamp(f.p[3].x,RING_L+22,RING_R-22);f.root.vx=0;f.hp=Math.max(f.hp,42-f.kd*7);f.stun=.6;f.stam=Math.max(f.stam,50);showMsg('UPPE!',.8)}
 function scoreRound(){
   const[A,B]=F,rc=[];
@@ -1565,6 +1566,7 @@ function drawUI(rdt){
     c.fillStyle=Math.sin(performance.now()/180)>0?'#ff3030':'#7a1010';c.beginPath();c.arc(x,y,fs*.35,0,6.283);c.fill();
     c.font=`bold ${fs}px Georgia,serif`;c.textBaseline='middle';c.fillStyle='#f4e2b0';c.fillText('REPRIS',x+fs*.7,y);c.font=`italic ${Math.round(fs*.6)}px Georgia,serif`;c.fillText(['FRÅN SIDAN','NÄRBILD','OVANIFRÅN'][r.pass]||'',x+fs*.7,y+fs*.9);
     c.globalAlpha=.6;c.font=`${Math.round(fs*.5)}px monospace`;c.fillText('TRYCK FÖR ATT HOPPA ÖVER',x,ih*.9);c.restore()}
+  if(game.mode==='match'&&!game.cine&&game.state!=='menu'){const sw0=F[0].swell||[0,0];for(const k of[0,1]){const v=clamp(((sw0[k]||0)-1.2)/1.8,0,1);if(v<=0)continue;const r=tvRect(),x0=k?r.x+r.w:r.x,g=c.createLinearGradient(x0,0,x0+(k?-1:1)*r.w*.55,0);g.addColorStop(0,`rgba(20,0,6,${.85*v})`);g.addColorStop(.6,`rgba(30,0,10,${.35*v})`);g.addColorStop(1,'rgba(0,0,0,0)');c.fillStyle=g;c.fillRect(r.x,r.y,r.w,r.h)}}
   // kommentatorn (textas längst ned i rutan)
   if(COM.a>0&&!game.cine){COM.a-=rdt;const al=Math.min(1,COM.a*2,(3.2-COM.a)*5);c.save();c.globalAlpha=al;const fs=Math.round(clamp(iw/52,11,19));c.font=`italic bold ${fs}px Georgia,serif`;c.textAlign='center';c.textBaseline='middle';const tx=iw*.43,ty=ih*.86,w=c.measureText('»'+COM.t+'«').width+24;
     c.fillStyle='rgba(10,6,2,.62)';c.fillRect(tx-w/2,ty-fs*.9,w,fs*1.8);c.fillStyle='#f4e2b0';c.fillText('»'+COM.t+'«',tx,ty);c.restore()}
@@ -1874,6 +1876,8 @@ function mixMesh(T,blue){
     for(const sd of[1,-1]){dec('Head',[sd*.056,1.553,.072],[.032,.026,.032],0x9a2a70,'jaw',sd,.8);dec('Head',[sd*.074,1.68,.036],[.024,.028,.022],0xb01c2a,'skull',sd,.8);dec('Head',[sd*.036,1.655,.097],[.022,.015,.013],0x7a2a78,'eye',sd,.8);
       dec('Spine2',[sd*.13,1.2,.07],[.05,.06,.04],0x8a2a60,'ribs',sd,.75)}
     dec('Head',[0,1.626,.11],[.015,.02,.015],0x8a1a1a,'nose',0,.75);dec('Head',[0,1.592,.105],[.009,.02,.005],0xa01010,'nose',0,.85);
+    for(const sd of[1,-1]){dec('Head',[sd*.058,1.615,.09],[.03,.028,.022],0x9a3a5a,'cheek',sd,.7);dec('Head',[sd*.045,1.675,.105],[.022,.009,.012],0x8a0c10,'cut',sd,.9);dec('Head',[sd*.05,1.62,.11],[.006,.05,.004],0xa00c0c,'bleed',sd,.8)}
+    dec('Spine2',[.02,1.24,.11],[.06,.08,.02],0x900c0c,'chestblood',0,.5);
     dec('Spine1',[-.1,1.08,.1],[.05,.05,.03],0x8a2a60,'liver',0,.75);dec('Spine2',[0,1.2,.12],[.04,.04,.03],0x8a2a60,'solar',0,.75)}
   return M;
 }
@@ -2114,8 +2118,8 @@ function mixPose(o){
   if(S.hitW>0){S.hitT+=dt*1.15;S.hitW-=dt*1.4;mxSample(M,S.hcl,S.hitT,false,Math.min(1,S.hitW*1.6))}
   // huvudknyck (fjäder): pitch bakåt + vridning
   {const sp=S.snap,K=160,D=2*Math.sqrt(K)*.45;sp[1]+=(-K*sp[0]-D*sp[1])*dt;sp[0]+=sp[1]*dt;sp[3]+=(-K*sp[2]-D*sp[3])*dt;sp[2]+=sp[3]*dt;
-    M.add.clear();const amp=sp[0]+((f.inj&&f.inj.brain)||0)*Math.sin(now*1.9+f.seed)*.05,yw=sp[2]+(f.stun>.15?Math.sin(now*4.1)*f.stun*.12:0)+((f.inj&&f.inj.brain)||0)*Math.sin(now*1.3)*.08;
-    if(Math.abs(amp)+Math.abs(yw)>.002){const ax=new T.Vector3(1,0,0),up=new T.Vector3(0,1,0);for(const[bn,k]of[['Spine2',.3],['Neck',.45],['Head',.6]]){M.add.set(M.BI[bn],new T.Quaternion().setFromAxisAngle(ax,amp*k).multiply(new T.Quaternion().setFromAxisAngle(up,yw*k)))}}}
+    M.add.clear();const wob=Math.min(1,(f.wobT||0)/2),amp=sp[0]+((f.inj&&f.inj.brain)||0)*Math.sin(now*1.9+f.seed)*.05+wob*Math.sin(now*2.1)*.12,yw=sp[2]+(f.stun>.15?Math.sin(now*4.1)*f.stun*.12:0)+((f.inj&&f.inj.brain)||0)*Math.sin(now*1.3)*.08+wob*Math.sin(now*1.4)*.2;
+    if(Math.abs(amp)+Math.abs(yw)>.002){const ax=new T.Vector3(1,0,0),up=new T.Vector3(0,1,0);if(wob>.01)M.add.set(M.BI.Spine,new T.Quaternion().setFromAxisAngle(new T.Vector3(0,0,1),Math.sin(now*2.7+f.seed)*.16*wob));for(const[bn,k]of[['Spine2',.3],['Neck',.45],['Head',.6]]){M.add.set(M.BI[bn],new T.Quaternion().setFromAxisAngle(ax,amp*k).multiply(new T.Quaternion().setFromAxisAngle(up,yw*k)))}}}
   // boxarhuk: böj i midjan och lite i knäna, huvudet framåt-ned men blicken kvar på motståndaren (fötterna står kvar)
   const inj=f.inj||{},dk=clamp(f.duckA,0,1.05)+(inj.ribs||0)*.12,drop=7.5*clamp(f.duckA,0,1.05);let ftM=null;
   if(dk>.01){mxFK(M);ftM=[M.Wp[M.BI.LeftFoot].clone(),M.Wp[M.BI.RightFoot].clone()];const ax=new T.Vector3(1,0,0),wv=Math.sin(now*3.2+f.seed)*.06*clamp(f.duckA,0,1);
@@ -2151,11 +2155,12 @@ function mixPose(o){
             const ph=lerp(hk?1.3:.9,hk?-.12:-.05,eio(Math.min(1,pr/.85))),dir=fv.clone().multiplyScalar(Math.cos(ph)).addScaledVector(lat,Math.sin(ph));
             let t2=sh.clone().addScaledVector(dir,R).addScaledVector(up,hk?-1.5+2*Math.sin(pr*Math.PI):6-10*pr);if(pr>.8)t2.lerp(new T.Vector3(wr[0],wr[1],wr[2]),ease((pr-.8)/.2));
             const wh=Math.min(1,pu.t/.08)*.95;if(wh>=w){w=wh;tg=t2}}}}
+      if(w<.3&&(inj.ribs||inj.liver)&&!(pu&&S.hand===hand)){const isd=(f.injSide&&(f.injSide.ribs||f.injSide.liver))||1;if((s==='Left'?1:-1)===isd){const sp2=M.Gp[M.BI.Spine1],lat=new T.Vector3(isd,0,0).applyQuaternion(M.yaw),fv=new T.Vector3(fw[0],0,fw[2]).normalize();tg=sp2.clone().addScaledVector(lat,7).addScaledVector(fv,6).add(new T.Vector3(0,9,0));w=Math.max(w,.55*Math.min(1,(inj.ribs||0)+(inj.liver||0)));pol=lat.clone().multiplyScalar(.4).add(new T.Vector3(0,-1,0)).normalize()}}
       if(w>0)mxIK(M,s,tg,w*(1-S.wr),pol)}}
   if(game.state==='over'&&game.winner===f&&!f.down&&S.wr<.3){S.win=Math.min(1,(S.win||0)+dt*2);const hd=M.Gp[M.BI.Head],lat=new T.Vector3(1,0,0).applyQuaternion(M.yaw),up=new T.Vector3(0,1,0);
     for(const[s,sg]of[['Left',1],['Right',-1]])mxIK(M,s,hd.clone().addScaledVector(up,26+3*Math.sin(now*6+sg)).addScaledVector(lat,sg*9),S.win*.95,lat.clone().multiplyScalar(sg).addScaledVector(up,-.3).normalize())}else S.win=0;
   (M.hdP||(M.hdP=new T.Vector3())).copy(M.Gp[M.BI.Head]);
-  if(M.decals){const iS=f.injSide||{};for(const d of M.decals){let v=inj[d.key]||0;if(d.key==='eye')v=Math.max(v,((f.swell&&f.swell[d.side>0?0:1])||0)/3);const on=v>.05&&(d.side===0||(iS[d.key]||1)===d.side||d.key==='eye');d.m.visible=on;if(on)d.m.scale.copy(d.m.userData.s).multiplyScalar(.7+.5*Math.min(1,v))}}
+  if(M.decals){const iS=f.injSide||{},sw2=f.swell||[0,0],cs=f.cutSide>0?1:-1;for(const d of M.decals){let v=inj[d.key]||0;if(d.key==='eye'||d.key==='cheek')v=Math.max(v,(sw2[d.side>0?0:1]||0)/(d.key==='eye'?2.6:3.2));if(d.key==='cut'||d.key==='bleed')v=d.side===cs?(f.cut||0)/3:0;if(d.key==='chestblood')v=Math.max(0,(f.cut||0)-1)/3;const on=v>.05&&(d.side===0||(iS[d.key]||1)===d.side||d.key==='eye'||d.key==='cheek'||d.key==='cut'||d.key==='bleed');d.m.visible=on;if(on){d.m.scale.copy(d.m.userData.s).multiplyScalar(.7+.5*Math.min(1,v));if(d.key==='bleed')d.m.scale.y*=.6+.8*Math.min(1,v)}}}
   // skriv till benen
   for(const i of M.ord){const p=M.par[i],b=M.bones[i];if(p<0){b.quaternion.copy(M.Gq[i]);b.position.copy(M.Gp[i])}else b.quaternion.copy(M.q2.copy(M.Gq[p]).invert().multiply(M.Gq[i]))}
 }
@@ -2544,9 +2549,9 @@ function init3D(THREE){
   const chain=new T.Mesh(new T.CylinderGeometry(1,1,1,6),new T.MeshStandardMaterial({color:0x9aa0aa,metalness:.8,roughness:.3}));scene.add(chain);
   // retrofilter: låg upplösning, färgreducering, Bayer-dithering, konturer från djupbufferten
   const rt=new T.WebGLRenderTarget(16,16,{depthBuffer:true,samples:4});rt.texture.minFilter=rt.texture.magFilter=T.LinearFilter;rt.texture.colorSpace=T.LinearSRGBColorSpace;
-  const post=new T.ShaderMaterial({uniforms:{tC:{value:rt.texture},tD:{value:null},res:{value:new T.Vector2(16,16)},cn:{value:4},cf:{value:3200},lv:{value:30},time:{value:0},xr:{value:0},bw:{value:0}},
+  const post=new T.ShaderMaterial({uniforms:{tC:{value:rt.texture},tD:{value:null},res:{value:new T.Vector2(16,16)},cn:{value:4},cf:{value:3200},lv:{value:30},time:{value:0},xr:{value:0},bw:{value:0},dbl:{value:0}},
     vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',
-    fragmentShader:`uniform sampler2D tC,tD;uniform vec2 res;uniform float cn,cf,lv,time,xr,bw;varying vec2 vUv;
+    fragmentShader:`uniform sampler2D tC,tD;uniform vec2 res;uniform float cn,cf,lv,time,xr,bw,dbl;varying vec2 vUv;
       float ld(vec2 u){float z=texture2D(tD,u).x*2.-1.;return 2.*cn*cf/(cf+cn-z*(cf-cn));}
       vec3 aces(vec3 x){return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);}
       float b2(vec2 a){a=floor(a);return fract(dot(a,vec2(.5,a.y*.75)));}
@@ -2558,6 +2563,7 @@ function init3D(THREE){
         if(uv.x<0.||uv.x>1.||uv.y<0.||uv.y>1.){gl_FragColor=vec4(0.,0.,0.,1.);return;}
         vec2 pg=res/2.2;uv=mix(uv,(floor(uv*pg)+.5)/pg,.85);  // PS1: grova pixlar
         vec2 p=1./res;float ca=.0018*length(q);vec3 c=vec3(grade(uv+vec2(ca,0.)).r,grade(uv).g,grade(uv-vec2(ca,0.)).b);
+        if(dbl>.01){vec2 o2=vec2(.012+.006*sin(time*2.3),.004*sin(time*1.7))*dbl;c=mix(c,grade(uv+o2),.38*min(dbl,1.));}
         vec3 gl=(grade(uv+vec2(3.*p.x,0.))+grade(uv-vec2(3.*p.x,0.))+grade(uv+vec2(0.,3.*p.y))+grade(uv-vec2(0.,3.*p.y)))*.25;c+=max(gl-.55,0.)*.6;
         c=mix(c,c*vec3(.55,.8,1.15)*.8+vec3(0.,.015,.04),xr);
         float sl=fract(gl_FragCoord.y/3.);c*=mix(1.,.7,smoothstep(.28,.5,abs(sl-.5)));float nz=fract(sin(dot(floor(gl_FragCoord.xy/2.)+floor(time*30.),vec2(12.9898,78.233)))*43758.5453);c+=(nz-.5)*.05;c*=1.+.05*smoothstep(.0,.06,.06-abs(fract(uv.y*.7-time*.12)-.5));
@@ -2675,7 +2681,7 @@ function draw3(){
   // svett: huden blir blankare ju tröttare och mer slagen boxaren är
   for(const o of R.fighters){const f=o.f,sw=clamp((1-f.stam/100)*.6+(game.round-1)*.15+(100-f.hp)/250,0,1);for(const m of new Set([o.skin,o.torsoM])){if(!m.isMeshPhysicalMaterial)continue;m.clearcoat=.12+.85*sw;m.clearcoatRoughness=.42-.3*sw;m.roughness=.52-.18*sw}}
   let xa=0;for(const o of R.fighters)xa=Math.max(xa,o.mxX?xrayMx(o):xray3(o));R.post.uniforms.xr.value=xa;
-  const c=R.cam;c.position.set(-CAM.px,CAM.py,CAM.pz);c.up.set(0,1,0);c.lookAt(-CAM.T[0],CAM.T[1],CAM.T[2]);c.setViewOffset(W,R.fullH,-SX,2*R.d-SY,W,H);R.post.uniforms.time.value=performance.now()/1000;R.post.uniforms.bw.value+=(BW-R.post.uniforms.bw.value)*.15;
+  const c=R.cam;c.position.set(-CAM.px,CAM.py,CAM.pz);c.up.set(0,1,0);c.lookAt(-CAM.T[0],CAM.T[1],CAM.T[2]);c.setViewOffset(W,R.fullH,-SX,2*R.d-SY,W,H);R.post.uniforms.time.value=performance.now()/1000;R.post.uniforms.bw.value+=(BW-R.post.uniforms.bw.value)*.15;R.post.uniforms.dbl.value=game.mode==='match'?Math.min(1,F[0].dbl||0):0;
   R.renderer.setRenderTarget(R.rt);R.renderer.render(R.scene,c);R.renderer.setRenderTarget(null);R.renderer.render(R.pScene,R.pCam);
   if(game.snapReq&&!game.cine&&!xrayOn()&&game.t-(game.kdT||0)>.35){game.snapReq=false;try{game.snap=R.gl.toDataURL('image/jpeg',.72)}catch(e){}}
 }
@@ -2748,7 +2754,13 @@ function roomDraw(){const cv=ROOM.cv||(ROOM.cv=document.getElementById('room'));
   for(const d of ROOM.dust){const x=sx+d.x*sw,y=sy+d.y*sh;if(d.t===0){c.fillStyle=`rgba(225,220,205,${d.a})`;c.beginPath();c.arc(x,y,d.r,0,6.283);c.fill()}
     else if(d.t===1){c.strokeStyle=`rgba(215,210,195,${d.a})`;c.lineWidth=.7;c.beginPath();c.moveTo(x,y);c.quadraticCurveTo(x+Math.cos(d.k)*sw*d.l,y+Math.sin(d.k*1.7)*sw*d.l*.6,x+Math.cos(d.k+1)*sw*d.l*1.4,y+Math.sin(d.k+1)*sw*d.l);c.stroke()}
     else{const g=c.createRadialGradient(x,y,1,x,y,d.r*sw);g.addColorStop(0,`rgba(255,250,235,${d.a})`);g.addColorStop(1,'rgba(255,250,235,0)');c.fillStyle=g;c.fillRect(x-d.r*sw,y-d.r*sw,d.r*sw*2,d.r*sw*2)}}
-  {const g=c.createLinearGradient(sx,sy,sx+sw*.5,sy+sh*.5);g.addColorStop(0,'rgba(255,255,255,.035)');g.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=g;c.beginPath();c.ellipse(sx+sw*.3,sy+sh*.22,sw*.32,sh*.16,-.25,0,6.283);c.fill()}
+  {// glansigt, buktat glas: mjuk ovalreflex, diagonalt ljusband, fönsterreflex och kantskimmer
+    let g=c.createRadialGradient(sx+sw*.28,sy+sh*.2,4,sx+sw*.28,sy+sh*.2,sw*.42);g.addColorStop(0,'rgba(255,255,255,.13)');g.addColorStop(.5,'rgba(255,255,255,.05)');g.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=g;c.beginPath();c.ellipse(sx+sw*.3,sy+sh*.22,sw*.36,sh*.2,-.22,0,6.283);c.fill();
+    c.save();c.translate(sx+sw*.5,sy+sh*.5);c.rotate(-.55);g=c.createLinearGradient(0,-sh*.09,0,sh*.09);g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(.5,'rgba(255,255,255,.07)');g.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=g;c.fillRect(-sw,-sh*.36,sw*2,sh*.18);
+    g=c.createLinearGradient(0,-sh*.03,0,sh*.03);g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(.5,'rgba(255,255,255,.05)');g.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=g;c.fillRect(-sw,-sh*.12,sw*2,sh*.06);c.restore();
+    const wx=sx+sw*.72,wy=sy+sh*.1,ww=sw*.1,wh=sh*.16;c.fillStyle='rgba(255,250,235,.06)';c.fillRect(wx,wy,ww,wh);c.fillStyle='rgba(255,250,235,.035)';c.fillRect(wx+ww*1.1,wy,ww,wh);c.fillStyle='rgba(0,0,0,.08)';c.fillRect(wx+ww*.47,wy,ww*.06,wh);c.fillRect(wx,wy+wh*.48,ww,wh*.04);
+    c.strokeStyle='rgba(255,255,255,.12)';c.lineWidth=Math.max(1.5,sw*.004);c.beginPath();c.moveTo(sx+rr*.8,sy+sh*.01);c.quadraticCurveTo(sx+sw*.3,sy-sh*.012,sx+sw*.55,sy+sh*.005);c.stroke();
+    c.strokeStyle='rgba(255,255,255,.07)';c.beginPath();c.moveTo(sx+sw*.004,sy+rr*1.2);c.quadraticCurveTo(sx-sw*.008,sy+sh*.4,sx+sw*.006,sy+sh*.62);c.stroke()}
   c.restore();
   // tittaren i fåtöljen (bakifrån) i förgrunden
   {const s=lerp(H0*.5,H0*.36,ez),px=lerp(W0*.22,W0*.075,ez),py=H0+lerp(s*.08,s*.26,ez);c.save();c.globalAlpha=lerp(.97,.9,ez);
