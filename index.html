@@ -127,7 +127,7 @@ button{font-family:inherit;cursor:pointer}
   <div class="card" id="mainCard">
     <div>
       <h1>RINGSIDE<span>32</span></h1>
-      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V34</span></p>
+      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V35</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
       <button id="go" class="big">SNABB MATCH</button>
@@ -987,7 +987,7 @@ function land(a,b,pu,body,g){
   b.rip.push({part,off,age:0,amp:crit?3.4:1+dmg*.07,crit,w:[0,0,0]});if(b.rip.length>4)b.rip.shift();
   if(crit)b.critT=.5;
   if(!body){
-    b.hp-=dmg;b.stun+=dmg*.034*(counter?1.35:1)*Z.s;b.toneDip=Math.min(.85,b.toneDip+dmg*.04*Z.s);b.headDip=Math.min(.95,b.headDip+dmg*.08);
+    b.mxHit={body:false,dmg,sd,hook:pu.type==='hook'||pu.type==='over',crit};b.hp-=dmg;b.stun+=dmg*.034*(counter?1.35:1)*Z.s;b.toneDip=Math.min(.85,b.toneDip+dmg*.04*Z.s);b.headDip=Math.min(.95,b.headDip+dmg*.08);
     b.zKick=clamp(b.zKick-sd*dmg*(pu.type==='hook'?.9:.2),-12,12);b.hyV=(b.hyV||0)-sd*dmg*(pu.type==='hook'||pu.type==='over'?.55:.15)*(crit?1.5:1);
     b.swell[sd>0?1:0]=Math.min(3,b.swell[sd>0?1:0]+dmg*.05);
     if(dmg>=8&&(zone==='TINNING'||zone==='NASA')&&Math.random()<.3&&b.cut<5){b.cut++;b.cutSide=sd;pop(b.cut>=3?'DJUP CUT!':'CUT!','#ff4a4a',.18)}
@@ -997,7 +997,7 @@ function land(a,b,pu,body,g){
     for(const bb of b.blob){const w=Math.max(0,1-Math.hypot(bb.x-g.x,bb.y-g.y)/20);bb.vx+=dx*imp*1.3*w;bb.vy+=dy*imp*1.3*w}
     sweat(P[0].x,P[0].y,dx,dy,6+(dmg|0)*(crit?2:1),null,b.zs[0]);(b.rimp=b.rimp||[]).push({part:'head',d:vnorm(D2W(dx,dy*.5,0)),m:dmg*70*(crit?1.4:1)*(pu.hay?1.15:1)});
   }else{
-    let bd=dmg*(zone==='REVBEN'?1.3:1);
+    let bd=dmg*(zone==='REVBEN'?1.3:1);b.mxHit={body:true,dmg,sd,crit};
     b.body-=bd;b.hp-=dmg*.3;b.stam=Math.max(0,b.stam-dmg*(zone==='SOLAR'?3:1.3));b.stun+=dmg*.025+(zone==='SOLAR'?.25:0);b.toneDip=Math.min(.7,b.toneDip+dmg*.03);
     if(zone==='LEVER'){b.liverT=cine?.35:.6;b.liverFold=!!cine||(dmg>=8.5&&b.body<55)||Math.random()<(60-b.body)/120;if(!b.liverFold){b.stam=Math.max(0,b.stam-dmg*2);b.stun+=.4}}
     const imp=dmg*30*(crit?1.5:1);P[2].vx+=dx*imp;P[3].vx+=dx*imp*.6;P[0].vx+=dx*imp*.5;P[2].vy+=dy*imp*.4;
@@ -1769,6 +1769,119 @@ function glbMesh(T,blue){
   const ra={};for(const s of'LR'){const A=bh[BI['uarm.'+s]],E=bh[BI['farm.'+s]],Wr=bt[BI['farm.'+s]],u=vnorm(vsub(Wr,A)),d=vsub(E,A);ra[s]=vnorm(vsub(d,vmul(u,vdot(d,u))))}
   return{mesh,bones,bh,bt,BI,par:J.parent,ra,reg:null,sh:null,eyes:[[0,0,0,.01],[0,0,0,.01]],Q:bones.map(()=>new T.Quaternion()),P:bones.map(()=>[0,0,0]),look:null,arm:[{},{}],leg:[{},{}],styl:true,model:true,mats:mat,gloveOff:J.gloveOff,clip:J.clip};
 }
+// ---------- Mixamo-boxaren: riktiga animationer (gard, slag, träffar, duck) ovanpå spelets osynliga skelett ----------
+let MIX=null;
+function mixMesh(T,blue){
+  const J=MIX.j,cp=(n,C)=>{const[o,l]=J.buf[n];return new C(MIX.b.slice(o,o+l))};
+  const p16=cp('pos',Int16Array),idx=J.i32?cp('idx',Uint32Array):cp('idx',Uint16Array),uv16=cp('uv',Uint16Array),si=cp('si',Uint8Array),sw=cp('sw',Uint8Array),nv=p16.length/3;
+  const pos=new Float32Array(nv*3),uv=new Float32Array(nv*2),SW=new Float32Array(nv*4);
+  for(let i=0;i<nv;i++){pos[i*3]=p16[i*3]/100;pos[i*3+1]=p16[i*3+1]/100;pos[i*3+2]=p16[i*3+2]/100;uv[i*2]=uv16[i*2]/65535;uv[i*2+1]=uv16[i*2+1]/65535;for(let a=0;a<4;a++)SW[i*4+a]=sw[i*4+a]/255}
+  const g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(pos,3));g.setAttribute('uv',new T.BufferAttribute(uv,2));g.setAttribute('skinIndex',new T.Uint16BufferAttribute(Uint16Array.from(si),4));g.setAttribute('skinWeight',new T.BufferAttribute(SW,4));g.setIndex(new T.BufferAttribute(idx,1));g.computeVertexNormals();
+  const tx=new T.TextureLoader().load(blue?'tex/boxer_blue.jpg':'tex/boxer_red.jpg');tx.colorSpace=T.SRGBColorSpace;tx.flipY=false;tx.anisotropy=4;
+  const mat=new T.MeshStandardMaterial({map:tx,roughness:.6,flatShading:true,side:T.DoubleSide});
+  const nb=J.bones.length,BI={},par=J.parent;J.bones.forEach((n,i)=>BI[n.replace('mixamorig','')]=i);
+  const restQ=J.restQ.map(a=>new T.Quaternion().fromArray(a).normalize()),restP=J.restP.map(a=>new T.Vector3().fromArray(a));
+  const bones=J.bones.map((n,i)=>{const b=new T.Bone();b.name=n;b.position.copy(restP[i]);b.quaternion.copy(restQ[i]);return b});
+  const mesh=new T.SkinnedMesh(g,mat);par.forEach((p,i)=>{if(p<0)mesh.add(bones[i]);else bones[p].add(bones[i])});
+  mesh.updateMatrixWorld(true);mesh.bind(new T.Skeleton(bones));mesh.castShadow=mesh.receiveShadow=true;mesh.frustumCulled=false;
+  const ord=[],seen=new Array(nb).fill(false),visit=i=>{if(seen[i])return;if(par[i]>=0)visit(par[i]);seen[i]=true;ord.push(i)};for(let i=0;i<nb;i++)visit(i);
+  const BWq=[],BWp=[];for(const i of ord){const p=par[i];if(p<0){BWq[i]=restQ[i].clone();BWp[i]=restP[i].clone()}else{BWq[i]=BWq[p].clone().multiply(restQ[i]);BWp[i]=restP[i].clone().applyQuaternion(BWq[p]).add(BWp[p])}}
+  const clips={};for(const n in J.clips)clips[n]={N:J.clips[n],q:cp('c_'+n,Int16Array),h:cp('h_'+n,Float32Array),meta:J.meta[n.replace(/_m$/,'')]};
+  const sub=r=>{const out=[];const rec=i=>{par.forEach((p,c)=>{if(p===i){out.push(c);rec(c)}})};rec(r);return out};
+  const V=()=>new T.Vector3(),Qn=()=>new T.Quaternion();
+  const M={mesh,bones,BI,par,ord,nb,BWq,BWp,restQ,restP,tb:J.tb,clips,mat,root:ord[0],
+    hsub:{Left:sub(BI.LeftHand),Right:sub(BI.RightHand)},
+    Lq:restQ.map(q=>q.clone()),Hp:V(),Wq:restQ.map(Qn),Wp:restP.map(V),Gq:restQ.map(Qn),Gp:restP.map(V),Rq:restQ.map(Qn),
+    q0:Qn(),q1:Qn(),q2:Qn(),v0:V(),v1:V(),v2:V(),v3:V(),yaw:Qn(),add:new Map(),
+    st:{pu:null,cl:null,tc:0,w:0,fade:0,hit:null,hitT:9,hitW:0,hn:-1,snap:[0,0,0,0],wr:0,wb:0,wc:0,last:null}};
+  M.dodge=mixDodgeFrames(M);
+  return M;
+}
+// samplar ett klipp och blandar in det (w=1 ersätter)
+function mxSample(M,cn,t,loop,w){
+  const C=M.clips[cn];if(!C||w<=.001)return;const N=C.N;let fr=t*30;if(loop){fr%=N-1;if(fr<0)fr+=N-1}else fr=clamp(fr,0,N-1);
+  const i0=Math.floor(fr),i1=Math.min(N-1,i0+1),a=fr-i0,nt=M.tb.length,q=C.q,h=C.h,Q0=M.q0,Q1=M.q1,s=1/32767;
+  for(let k=0;k<nt;k++){const b=M.tb[k],o0=(i0*nt+k)*4,o1=(i1*nt+k)*4;Q0.set(q[o0]*s,q[o0+1]*s,q[o0+2]*s,q[o0+3]*s).normalize();Q1.set(q[o1]*s,q[o1+1]*s,q[o1+2]*s,q[o1+3]*s).normalize();Q0.slerp(Q1,a);
+    if(w>=.999)M.Lq[b].copy(Q0);else M.Lq[b].slerp(Q0,w)}
+  const v=M.v0.set(lerp(h[i0*3],h[i1*3],a),lerp(h[i0*3+1],h[i1*3+1],a),lerp(h[i0*3+2],h[i1*3+2],a));if(!loop){const k=.15;v.x=h[0]+(v.x-h[0])*k;v.z=h[2]+(v.z-h[2])*k}if(w>=.999)M.Hp.copy(v);else M.Hp.lerp(v,w)}
+// framåtkinematik i modellrummet; M.add kan förrotera ben i modellrummet (huvudknyck m.m.)
+function mxFK(M){const{par,ord,Lq,Wq,Wp,restP}=M;for(const i of ord){const p=par[i];if(p<0){Wq[i].copy(Lq[i]);Wp[i].copy(M.Hp)}else{Wq[i].copy(Wq[p]).multiply(Lq[i]);Wp[i].copy(restP[i]).applyQuaternion(Wq[p]).add(Wp[p])}const r=M.add.get(i);if(r)Wq[i].premultiply(r)}}
+function mixDodgeFrames(M){const C=M.clips.Dodging_1_1;if(!C)return null;const H=M.BI.Head,Hi=M.BI.Hips;let du=[0,1e9],sw=[0,1e9],sl=[0,-1e9],sr=[0,1e9];
+  for(let i=0;i<C.N;i++){M.Lq.forEach((q,k)=>q.copy(M.restQ[k]));mxSample(M,'Dodging_1_1',i/30,false,1);mxFK(M);const hd=M.Wp[H],hp=M.Wp[Hi],t=i/30;
+    if(hd.y<du[1])du=[t,hd.y];if(hd.z-hp.z<sw[1])sw=[t,hd.z-hp.z];if(hd.x-hp.x>sl[1])sl=[t,hd.x-hp.x];if(hd.x-hp.x<sr[1])sr=[t,hd.x-hp.x]}
+  return{duck:du[0],sway:sw[0],slipL:sl[0],slipR:sr[0]}}
+const MXMAP={hips:'Hips',spine:'Spine',chest:'Spine2',neck:'Neck',head:'Head','clav.L':'LeftShoulder','uarm.L':'LeftArm','farm.L':'LeftForeArm','hand.L':'LeftHand','clav.R':'RightShoulder','uarm.R':'RightArm','farm.R':'RightForeArm','hand.R':'RightHand','thigh.L':'LeftUpLeg','shin.L':'LeftLeg','foot.L':'LeftFoot','thigh.R':'RightUpLeg','shin.R':'RightLeg','foot.R':'RightFoot'};
+const MXCH={Hips:'Spine',Spine:'Spine1',Spine2:'Neck',Neck:'Head',LeftShoulder:'LeftArm',LeftArm:'LeftForeArm',LeftForeArm:'LeftHand',LeftHand:'LeftHandIndex1',RightShoulder:'RightArm',RightArm:'RightForeArm',RightForeArm:'RightHand',RightHand:'RightHandIndex1',LeftUpLeg:'LeftLeg',LeftLeg:'LeftFoot',LeftFoot:'LeftToeBase',RightUpLeg:'RightLeg',RightLeg:'RightFoot',RightFoot:'RightToeBase'};
+// justering spelben -> mixamoben (vilopositionerna skiljer: armarna hänger i spelet, 50° ut hos Mixamo)
+function mixAlign(M,h){const T=T3,A={};for(const g in MXMAP){const mn=MXMAP[g],m=M.BI[mn],gi=h.BI[g];if(m==null||gi==null)continue;
+  let dm;if(mn==='Head')dm=new T.Vector3(0,1,0);else{const c=M.BI[MXCH[mn]];dm=M.BWp[c].clone().sub(M.BWp[m]).normalize()}
+  const r=vsub(h.bt[gi],h.bh[gi]),dg=new T.Vector3(r[0],r[1],r[2]).normalize();A[m]={gi,q:new T.Quaternion().setFromUnitVectors(dm,dg).multiply(M.BWq[m])}}
+  M.align=A;M.hipOff=M.BWp[M.BI.Hips].clone().sub(new T.Vector3(...h.bh[h.BI.hips]))}
+// tvåledad IK på en arm i gruppens rum
+function mxIK(M,s,tg,w){if(w<=.001)return;const a=M.BI[s+'Arm'],e=M.BI[s+'ForeArm'],hd=M.BI[s+'Hand'],G=M.Gp,Q=M.Gq,T=T3;
+  const A=G[a],E=G[e],W=G[hd],L1=A.distanceTo(E),L2=E.distanceTo(W);const tgt=M.v1.copy(W).lerp(tg,w);
+  const d=M.v2.copy(tgt).sub(A);let dl=d.length();if(dl<1e-4)return;dl=clamp(dl,Math.abs(L1-L2)+.5,(L1+L2)*.999);const u=d.normalize();
+  const pv=M.v3.copy(E).sub(A);pv.addScaledVector(u,-pv.dot(u));if(pv.lengthSq()<1e-6)pv.set(0,-1,0).addScaledVector(u,-u.y);pv.normalize();
+  const ca=clamp((L1*L1+dl*dl-L2*L2)/(2*L1*dl),-1,1),sa=Math.sqrt(1-ca*ca);
+  const E2=new T.Vector3().copy(A).addScaledVector(u,ca*L1).addScaledVector(pv,sa*L1),W2=new T.Vector3().copy(A).addScaledVector(u,dl);
+  const r1=new T.Quaternion().setFromUnitVectors(E.clone().sub(A).normalize(),E2.clone().sub(A).normalize());
+  const fw=W.clone().sub(E).applyQuaternion(r1).normalize(),r2=new T.Quaternion().setFromUnitVectors(fw,W2.clone().sub(E2).normalize()),r21=r2.clone().multiply(r1);
+  Q[a].premultiply(r1);Q[e].premultiply(r21);Q[hd].premultiply(r21);for(const c of M.hsub[s])Q[c].premultiply(r21);E.copy(E2);W.copy(W2)}
+function mixPose(o){
+  const M=o.mx,f=o.f,h=o.hum,T=T3;if(!M||!h)return;const S=M.st;
+  const xo=!!(o.xr&&o.xr.on);M.mesh.visible=!xo;h.mesh.visible=xo;if(xo)return;
+  const now=game.t,dt=S.last==null?0:clamp(now-S.last,0,.1);S.last=now;
+  if(!M.align)mixAlign(M,h);
+  const leadS=f.stance===1?'R':'L',mr=leadS==='R'?'_m':'',side=hd=>(hd?(leadS==='L'?'R':'L'):leadS)==='L'?'Left':'Right';
+  for(let i=0;i<M.nb;i++)M.Lq[i].copy(M.restQ[i]);
+  // 1) gard (loop)
+  mxSample(M,'Boxing'+mr,now*.95+f.seed,true,1);
+  // 2) undanmanövrar ur Dodging-klippet
+  if(M.dodge){const D=M.dodge,cn='Dodging_1_1'+mr;
+    mxSample(M,cn,D.duck,false,clamp(f.duckA,0,1)*.95);mxSample(M,cn,D.sway,false,clamp(f.swayA,0,1)*.85);
+    const sl=f.slipA||0;if(Math.abs(sl)>.02){const hs=vsub(h.P[h.BI.head],h.P[h.BI.chest]),lat=D2W(0,0,1),left=(vdot(hs,lat)>0)===(mr==='');mxSample(M,cn,left?D.slipL:D.slipR,false,Math.min(1,Math.abs(sl))*.9)}}
+  // 3) slag: rätt klipp, tiden synkad mot spelets träffögonblick
+  const pu=f.punch;
+  if(pu&&pu!==S.pu){const lead=pu.hand===0,map={straight:lead?'Boxing_1':'Boxing_8',hook:lead?'Boxing_5':'Boxing_4',upper:lead?'Boxing_5':'Boxing_3',over:'Boxing_8'};S.pu=pu;S.cl=map[pu.type]+mr;S.w=S.fade>0?S.w:0;S.fade=0}
+  if(pu&&pu===S.pu){const C=M.clips[S.cl],I=C.meta.imp,t0=I-Math.min(I,.34),tH=pu.w+pu.st/1.6,tot=pu.w+pu.st+pu.r;
+    S.tc=pu.t<tH?t0+(I-t0)*(pu.t/tH):I+(pu.t-tH)/Math.max(.05,tot-tH)*.42;S.w=Math.min(1,S.w+dt/.05);S.u=pu.t-tH;S.hand=pu.hand}
+  else if(S.pu){S.pu=null;S.fade=.22;S.u=9}
+  if(S.fade>0){S.fade-=dt;S.tc+=dt*1.2;S.w=Math.max(0,S.fade/.22)}
+  if(S.cl&&S.w>0)mxSample(M,S.cl,S.tc,false,S.w);
+  // 4) kroppsträff: vik dig framåt
+  const hit=f.mxHit;if(hit&&hit!==S.hit){S.hit=hit;if(hit.body){S.hcl=(hit.dmg>7?'Receive_Stomach_Uppercut':'Hit_Reaction')+mr;S.hitT=M.clips[S.hcl].meta.imp-.1;S.hitW=Math.min(.9,.45+hit.dmg*.05)}
+    else{const k=Math.min(1.4,.25+hit.dmg*.06)*(hit.crit?1.4:1);S.snap[1]-=k*7;S.snap[3]+=(hit.sd||0)*k*(hit.hook?6:2)}}
+  if(S.hitW>0){S.hitT+=dt*1.15;S.hitW-=dt*1.4;mxSample(M,S.hcl,S.hitT,false,Math.min(1,S.hitW*1.6))}
+  // huvudknyck (fjäder): pitch bakåt + vridning
+  {const sp=S.snap,K=160,D=2*Math.sqrt(K)*.45;sp[1]+=(-K*sp[0]-D*sp[1])*dt;sp[0]+=sp[1]*dt;sp[3]+=(-K*sp[2]-D*sp[3])*dt;sp[2]+=sp[3]*dt;
+    M.add.clear();const amp=sp[0],yw=sp[2]+(f.stun>.15?Math.sin(now*4.1)*f.stun*.12:0);
+    if(Math.abs(amp)+Math.abs(yw)>.002){const ax=new T.Vector3(1,0,0),up=new T.Vector3(0,1,0);for(const[bn,k]of[['Spine2',.3],['Neck',.45],['Head',.6]]){M.add.set(M.BI[bn],new T.Quaternion().setFromAxisAngle(ax,amp*k).multiply(new T.Quaternion().setFromAxisAngle(up,yw*k)))}}}
+  mxFK(M);
+  // till gruppens rum: står där spelets bäcken står, vänd mot motståndaren
+  const fw=D2W(f.face,0,0),Pel=h.P[h.BI.hips];M.yaw.setFromAxisAngle(new T.Vector3(0,1,0),Math.atan2(fw[0],fw[2]));
+  const O=M.v0.set(Pel[0],0,Pel[2]);
+  for(let i=0;i<M.nb;i++){M.Gq[i].copy(M.yaw).multiply(M.Wq[i]);M.Gp[i].copy(M.Wp[i]).applyQuaternion(M.yaw).add(O)}
+  // mjuk separation: huvudena får inte gå in i varandra
+  {const op=R3&&R3.fighters.find(q=>q!==o&&q.mx&&q.mx.mesh.visible&&q.grp.visible),hd=M.Gp[M.BI.Head];let push=0;
+    if(op&&op.mx.hdP){const dx=hd.x-op.mx.hdP.x,dz=hd.z-op.mx.hdP.z,dl=Math.hypot(dx,dz);push=Math.max(0,24-dl)}
+    S.sep=(S.sep||0)+(push*.6-(S.sep||0))*Math.min(1,dt*20);if(S.sep>.01){const bx=-fw[0]*S.sep,bz=-fw[2]*S.sep;for(const v of M.Gp){v.x+=bx;v.z+=bz}}}
+  // 5) nere/på väg upp: följ ragdollen
+  const wrT=f.down?1:f.rising>0?1-ease(Math.min(1,f.rising*1.25)):0;S.wr+=(wrT-S.wr)*Math.min(1,dt*(wrT>S.wr?14:6));
+  if(S.wr>.002){const A=M.align,R=M.Rq;for(const i of M.ord){const a=A[i],p=M.par[i];if(a)R[i].copy(h.Q[a.gi]).multiply(a.q);else R[i].copy(p<0?M.Gq[i]:R[p]).multiply(p<0?M.q2.identity():M.restQ[i])}
+    for(const i of M.ord)M.Gq[i].slerp(R[i],S.wr);
+    const hp=h.P[h.BI.hips],ro=M.root,hr=M.v1.copy(M.hipOff).applyQuaternion(M.q1.copy(h.Q[h.BI.hips])).add(M.v2.set(hp[0],hp[1],hp[2]));M.Gp[ro].lerp(hr,S.wr);
+    for(const i of M.ord){const p=M.par[i];if(p>=0)M.Gp[i].copy(M.restP[i]).applyQuaternion(M.Gq[p]).add(M.Gp[p])}}
+  // 6) händerna: blockering och träffögonblick styrs av spelets handskar (så slagen faktiskt når fram)
+  if(S.wr<.6){const wB=f.blocking?1:inClinch(f)?.8:0;S.wb+=(wB-S.wb)*Math.min(1,dt*14);
+    const hdM=M.Gp[M.BI.Head],hdG=h.P[h.BI.head];
+    for(const hand of[0,1]){const s=side(hand),gs=s==='Left'?'L':'R',wr=h.P[h.BI['hand.'+gs]];let w=0,tg;
+      if(S.wb>.01){w=S.wb;tg=new T.Vector3(wr[0]-hdG[0]+hdM.x,wr[1]-hdG[1]+hdM.y,wr[2]-hdG[2]+hdM.z)}
+      if(pu&&S.hand===hand&&S.u!=null){const u=S.u,wi=(u<0?clamp(1+u/.12,0,1):clamp(1-u/.2,0,1))*.85;if(wi>w){w=wi;tg=new T.Vector3(wr[0],wr[1],wr[2])}}
+      if(w>0)mxIK(M,s,tg,w*(1-S.wr))}}
+  (M.hdP||(M.hdP=new T.Vector3())).copy(M.Gp[M.BI.Head]);
+  // skriv till benen
+  for(const i of M.ord){const p=M.par[i],b=M.bones[i];if(p<0){b.quaternion.copy(M.Gq[i]);b.position.copy(M.Gp[i])}else b.quaternion.copy(M.q2.copy(M.Gq[p]).invert().multiply(M.Gq[i]))}
+}
 function hq(){if(!HQ){const T=T3;HQ={m1:new T.Matrix4(),m2:new T.Matrix4(),m3:new T.Matrix4(),q:new T.Quaternion(),q2:new T.Quaternion(),v:new T.Vector3(),s:new T.Vector3()}}return HQ}
 function qrot(q,a){const v=hq().v.set(a[0],a[1],a[2]).applyQuaternion(q);return[v.x,v.y,v.z]}
 // rotation som för vilo-ramen (riktning + hjälpvektor) till världsramen
@@ -2103,7 +2216,7 @@ function init3D(THREE){
     o.mouth=new T.Mesh(new T.BoxGeometry(1,1,1),dark);o.mouth.matrixAutoUpdate=false;grp.add(o.mouth);
     if(HUM){try{
       const hs=new T.MeshStandardMaterial({vertexColors:true,color:0xffffff,roughness:.5,flatShading:true,side:T.DoubleSide});
-      o.hum=B3D?glbMesh(T,f.idx===1):stylMesh(T,f.idx?'b':'a',hs);grp.add(o.hum.mesh);o.skin=o.torsoM=o.hum.mats||hs;o.xr=buildXray(T,o);
+      o.hum=B3D?glbMesh(T,f.idx===1):stylMesh(T,f.idx?'b':'a',hs);grp.add(o.hum.mesh);o.skin=o.torsoM=o.hum.mats||hs;o.xr=buildXray(T,o);if(MIX){try{o.mx=mixMesh(T,f.idx===1);grp.add(o.mx.mesh);o.hum.mesh.visible=false}catch(e){console.error('mixamo av:',e);o.mx=null}}
       {const h=o.hum,hi=h.BI.head,H0=h.bh[hi],H1=h.bt[hi],hh=Math.hypot(...vsub(H1,H0)),g=new T.SphereGeometry(1,9,6,0,Math.PI*2,0,Math.PI*.56),pa=g.attributes.position;
         for(let i=0;i<pa.count;i++){const x=pa.getX(i),y=pa.getY(i),z=pa.getZ(i),n=1+.1*Math.sin(x*9+z*7)*Math.sin(y*11+x*5)+.06*Math.sin(z*17);pa.setXYZ(i,x*n,y*n,z*n)}g.computeVertexNormals();
         const hair=new T.Mesh(g,new T.MeshStandardMaterial({color:0x3b2416,roughness:.8,flatShading:true}));const c=vadd(vlerp(H0,H1,.5),[0,hh*.03,-hh*.06]);hair.position.set(c[0]-H0[0],c[1]-H0[1],c[2]-H0[2]);hair.scale.set(hh*.47,hh*.5,hh*.55);hair.rotation.x=-.42;hair.castShadow=true;h.bones[hi].add(hair);o.hair=hair}
@@ -2240,6 +2353,7 @@ function draw3(){
   const fb=o=>o.hum?human3(o):fighter3(o);fb(R.fighters[0]);if(!tr)fb(R.fighters[1]);else bag3();
   if(R.world)ragStep(R,tr);
   for(const o of R.fighters)if(o.hum&&(o===R.fighters[0]||!tr)){if(o.rag&&R.world&&o.rag.mode!=='kin')humanFromRag(o);humanDress(o)}
+  for(const o of R.fighters)if(o.mx&&(o===R.fighters[0]||!tr))mixPose(o);
   // svett: huden blir blankare ju tröttare och mer slagen boxaren är
   for(const o of R.fighters){const f=o.f,sw=clamp((1-f.stam/100)*.6+(game.round-1)*.15+(100-f.hp)/250,0,1);for(const m of new Set([o.skin,o.torsoM])){if(!m.isMeshPhysicalMaterial)continue;m.clearcoat=.12+.85*sw;m.clearcoatRoughness=.42-.3*sw;m.roughness=.52-.18*sw}}
   let xa=0;for(const o of R.fighters)xa=Math.max(xa,xray3(o));R.post.uniforms.xr.value=xa;
@@ -2299,8 +2413,9 @@ fit();addEventListener('resize',fit);
 bounds();F[0].reset(250);F[1].reset(390);game.cam=320-W/2;
 requestAnimationFrame(frame);
 if(location.protocol.startsWith('http')){const hj=fetch('human.json').then(r=>r.ok?r.json():null).catch(()=>null),hb=fetch('human.bin').then(r=>r.ok?r.arrayBuffer():null).catch(()=>null);
+  const mx=Promise.all([fetch('mix.json').then(r=>r.ok?r.json():null),fetch('mix.bin').then(r=>r.ok?r.arrayBuffer():null)]).catch(()=>[null,null]);
   const bx=Promise.all([fetch('boxer3d.json').then(r=>r.ok?r.json():null),fetch('boxer3d.bin').then(r=>r.ok?r.arrayBuffer():null)]).catch(()=>[null,null]);
-  Promise.all([import('./three.module.min.js'),hj,hb,import('./cannon-es.js').catch(()=>null),bx]).then(([m,j,b,c,x])=>{if(j&&b)HUM={j,b};if(c)CANNON=c;if(x&&x[0]&&x[1])B3D={j:x[0],b:x[1]};try{init3D(m)}catch(e){console.error('3D av:',e);R3=null}}).catch(e=>console.warn('Three.js kunde inte laddas',e))}
+  Promise.all([import('./three.module.min.js'),hj,hb,import('./cannon-es.js').catch(()=>null),bx,mx]).then(([m,j,b,c,x,y])=>{if(y&&y[0]&&y[1])MIX={j:y[0],b:y[1]};if(j&&b)HUM={j,b};if(c)CANNON=c;if(x&&x[0]&&x[1])B3D={j:x[0],b:x[1]};try{init3D(m)}catch(e){console.error('3D av:',e);R3=null}}).catch(e=>console.warn('Three.js kunde inte laddas',e))}
 })();
 </script>
 <div id="crt"></div><div id="tvframe"></div>
