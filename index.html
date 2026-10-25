@@ -98,7 +98,8 @@ button{font-family:inherit;cursor:pointer}
 .cres{font-size:8px;line-height:1.8;margin:8px 0;color:#fff}
 .cnote{font-size:6.5px;color:#aaa;line-height:1.7;margin:6px 0 12px}
 #crt{position:fixed;inset:0;pointer-events:none;z-index:9999;border-radius:6vh/8vh;box-shadow:inset 0 0 0 2.2vh #0b0a0c,inset 0 0 0 2.8vh #1d1b20,inset 0 0 6vh 3.5vh rgba(0,0,0,.9),inset 0 0 18vh rgba(0,0,0,.55);background:repeating-linear-gradient(to bottom,rgba(0,0,0,.18) 0 1px,transparent 1px 3px),radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.5) 100%);animation:crtf .12s steps(2) infinite}
-#tvframe{position:fixed;inset:0;pointer-events:none;z-index:10000;border:1.6vh solid #121014;border-radius:7vh/9vh;box-shadow:0 0 0 40vh #121014}
+#tvframe{display:none}
+#room{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
 #crt::after{content:'';position:absolute;inset:0;border-radius:inherit;background:radial-gradient(ellipse 70% 45% at 30% 18%,rgba(255,255,255,.07),transparent 60%),linear-gradient(rgba(255,255,255,.03),transparent 40%,rgba(255,255,255,.02));}
 @keyframes crtf{50%{opacity:.93}}
 @media (prefers-reduced-motion:reduce){#crt{animation:none}}
@@ -130,6 +131,7 @@ button{font-family:inherit;cursor:pointer}
       <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V35</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
+      <div class="diff" id="bwRow"><button data-bw="0" class="on">FÄRG-TV</button><button data-bw="1">SVARTVIT 50-TALS-TV</button></div>
       <button id="go" class="big">SNABB MATCH</button>
       <button id="car" class="big">KARRIÄR</button>
       <button id="tr" class="big">TRÄNA PÅ SÄCKEN</button>
@@ -185,19 +187,23 @@ const ROT0=.38,SW=10;
 // animationsstyrd kropp (som Fight Night): poserna styr, träffar ger fjädrande reaktioner ovanpå. Full ragdoll först vid knockout.
 const RK=[150,190,210,250,260,300,260,300,300,2000,300,2000],RZ=[.4,.5,.55,.6,.6,.6,.6,.6,.6,1,.6,1],RSI=[.55,.6,.6,.5,.7,.7,.7,.7,.4,0,.4,0],RM=[19,10,9,6,14,16,14,16,6,0,6,0];
 const PT={straight:{w:.1,s:.15,r:.2,d:4.5,c:4},hook:{w:.17,s:.19,r:.28,d:8.5,c:8},upper:{w:.22,s:.19,r:.3,d:9.5,c:8},over:{w:.2,s:.2,r:.32,d:9.5,c:9}};
+for(const k in PT){const p=PT[k];p.w*=1.5;p.s*=1.45;p.r*=1.55}  // lugnare tempo: slagen syns tydligt
 const NAMES={straight:['JABB','RAK HÖGER'],hook:['VÄNSTERKROK','HÖGERKROK'],upper:['VÄNSTER UPPER','HÖGER UPPER'],over:['VÄNSTER OVERHAND','OVERHAND HÖGER']};
 const DIFF={latt:{react:.2,aggr:.42,think:[.45,.9],dmg:.8,counter:.1,side:.4,parry:.04,learn:.1,feint:.04},normal:{react:.4,aggr:.58,think:[.3,.65],dmg:1,counter:.3,side:.8,parry:.12,learn:.25,feint:.12},svar:{react:.6,aggr:.76,think:[.18,.42],dmg:1.18,counter:.55,side:1.3,parry:.25,learn:.42,feint:.25}};
 // anatomiska zoner: d = skademultipel, s = chockmultipel
 const ZM={KAKE:{d:1.15,s:1.45,lab:'KÄKEN'},TINNING:{d:1.1,s:1.3,lab:'TINNINGEN'},NASA:{d:1.05,s:.9,lab:'NÄSAN'},HUVUD:{d:1,s:1,lab:''},LEVER:{d:1.2,s:.6,lab:'LEVERN'},SOLAR:{d:1.1,s:.8,lab:'SOLAR PLEXUS'},REVBEN:{d:1.2,s:.5,lab:'REVBENEN'},MAGE:{d:1,s:.6,lab:''}};
 const LOOKS=[{name:'KID KAOS',skin:'#d99a6c',glove:'#d8262c',trunk:'#c8202c',band:'#f4f0e6',boot:'#c8202c',hair:'#3a2214'},
              {name:'BJÖRN BERG',skin:'#9c6646',glove:'#2458d8',trunk:'#1f48c8',band:'#f4f0e6',boot:'#1f48c8',hair:'#2a1a10',beard:'#2a1a10'}];
+// karriären: varje motståndare har en egen nivå (lv 0..1) och stil – stigande men aldrig omöjligt (taket ligger under 'svår')
 const LADDER=[
-  {name:'TOMMY TAPP',diff:'latt',skin:'#e6b894',glove:'#2a9a3a',trunk:'#2a7a2a',band:'#ffffff',boot:'#2a2a2a',hair:'#c89a40'},
-  {name:'RICO RAPP',diff:'latt',skin:'#b07850',glove:'#e0a020',trunk:'#7a2a8a',band:'#e0a020',boot:'#eeeeee',hair:'#1a1008'},
-  {name:'IVAN JÄRN',diff:'normal',skin:'#e8c0a0',glove:'#585858',trunk:'#333333',band:'#c03030',boot:'#111111',hair:null,beard:'#8a6a40'},
-  {name:'DIEGO DYNAMIT',diff:'normal',skin:'#a86a40',glove:'#ff6a00',trunk:'#c02020',band:'#ffd040',boot:'#ffffff',hair:'#140a04'},
-  {name:'KENJI KOBRA',diff:'svar',skin:'#e0b888',glove:'#e8e8e8',trunk:'#141414',band:'#d4af37',boot:'#111111',hair:'#0a0a0a'},
-  Object.assign({},LOOKS[1],{diff:'svar'})];
+  {name:'TOMMY TAPP',diff:'latt',lv:.0,style:{pow:.85,spd:.92,aggr:-.08},desc:'Nybörjare. Långsam, slår löst.',skin:'#e6b894',glove:'#2a9a3a',trunk:'#2a7a2a',band:'#ffffff',boot:'#2a2a2a',hair:'#c89a40'},
+  {name:'RICO RAPP',diff:'latt',lv:.2,style:{pow:.85,spd:1.06,aggr:.08},desc:'Snabba jabbar men tål inte mycket.',skin:'#b07850',glove:'#e0a020',trunk:'#7a2a8a',band:'#e0a020',boot:'#eeeeee',hair:'#1a1008'},
+  {name:'IVAN JÄRN',diff:'normal',lv:.4,style:{pow:1.18,spd:.9,aggr:-.04,tough:1.15},desc:'Långsam slugger. Hårda högrar – väj!',skin:'#e8c0a0',glove:'#585858',trunk:'#333333',band:'#c03030',boot:'#111111',hair:null,beard:'#8a6a40'},
+  {name:'DIEGO DYNAMIT',diff:'normal',lv:.55,style:{pow:1.05,spd:1,aggr:.14},desc:'Aggressiv brawler som pressar hela tiden.',skin:'#a86a40',glove:'#ff6a00',trunk:'#c02020',band:'#ffd040',boot:'#ffffff',hair:'#140a04'},
+  {name:'KENJI KOBRA',diff:'svar',lv:.72,style:{pow:.95,spd:1.08,aggr:-.06,counter:.15},desc:'Kontrar allt du missar. Var tålmodig.',skin:'#e0b888',glove:'#e8e8e8',trunk:'#141414',band:'#d4af37',boot:'#111111',hair:'#0a0a0a'},
+  Object.assign({},LOOKS[1],{diff:'svar',lv:.88,style:{pow:1.08,spd:1.02,aggr:.04,counter:.08,tough:1.1},desc:'Mästaren. Komplett på alla sätt.'})];
+function mkDiff(o){const a=DIFF.latt,b=DIFF.svar,t=clamp(o.lv,0,1)*.9,st=o.style||{},d={};for(const k in a)d[k]=Array.isArray(a[k])?a[k].map((v,i)=>lerp(v,b[k][i],t)):lerp(a[k],b[k],t);
+  d.aggr=clamp(d.aggr+(st.aggr||0),.3,.85);d.counter=clamp(d.counter+(st.counter||0),0,.7);return d}
 const COMBOS=[[['straight',0],['over',1]],[['straight',0],['straight',0],['over',1]],[['straight',0],['straight',1],['hook',0],['straight',1]],[['hook',0],['hook',1]],[['upper',0],['hook',1]],[['straight',1],['hook',0],['straight',1]],[['straight',0]],[['straight',0],['straight',1]],[['straight',0],['straight',0],['straight',1]],[['straight',0],['hook',0]],[['straight',1],['hook',0]],[['hook',0],['upper',1]],[['straight',0],['straight',1],['hook',0]],[['upper',1]],[['hook',1]],[['straight',0],['upper',1],['hook',0]]];
 
 const clamp=(v,a,b)=>v<a?a:v>b?b:v,lerp=(a,b,t)=>a+(b-a)*t,rand=(a,b)=>a+Math.random()*(b-a),ease=t=>1-(1-t)*(1-t),eio=t=>t<.5?2*t*t:1-2*(1-t)*(1-t);
@@ -281,7 +287,9 @@ function setupCam(){
   const c=Math.cos(AR.th),s=Math.sin(AR.th);LRx=c;LRz=s;LFx=-s;LFz=c;
   const k=game.cam+W/2-320;game.zo=(game.zo||0)+((game.state==='roundEnd'?1:0)-(game.zo||0))*.025;let T=[AR.mx*(1-game.zo)+c*k*(1-game.zo),BASE_Y,AR.mz*(1-game.zo)+s*k*(1-game.zo)],th=CAM.th,pitch=BASE_P+game.zo*.12,dist=BASE_D*(1+game.zo*1.3);
   const cn=game.cine;
-  if(cn&&cn.kz>0){const P=cineTarget(),kz=cn.kz;if(cn.hit&&xrayOn())P[1]+=cn.part==='head'?16:8;T=vlerp(T,P,kz);th+=(cn.yaw+(cn.hit?Math.min(1.2,(cn.rt-cn.hitRt)*.22):0)*Math.sign(cn.yaw||1))*kz;pitch=lerp(BASE_P,.03,kz);dist=lerp(BASE_D,cn.dist,kz)}
+  if(cn&&cn.kz>0){let P=cineTarget(),kz=cn.kz,cd=cn.dist;if(cn.hit&&xrayOn())P[1]+=cn.part==='head'?16:8;
+    if(cn.steps&&cn.si>=0&&xrayOn()){const S=cn.steps[cn.si],w=S.at&&S.at();if(w){cn.camP=cn.camP?vlerp(cn.camP,w,.08):P;P=cn.camP;cn.camD=lerp(cn.camD||cn.dist,S.dist,.06);cd=cn.camD}}
+    T=vlerp(T,P,kz);th+=(cn.yaw+(cn.hit?(cn.steps&&cn.si>=0?.5+Math.sin((cn.rt-cn.hitRt)*.35)*.35:Math.min(1.2,(cn.rt-cn.hitRt)*.22)):0)*Math.sign(cn.yaw||1))*kz;pitch=lerp(BASE_P,.03,kz);dist=lerp(BASE_D,cd,kz)}
   const cp=Math.cos(pitch),sp=Math.sin(pitch),rx=Math.cos(th),rz=Math.sin(th),fx=-rz,fz=rx;
   CAM.F=[fx*cp,-sp,fz*cp];CAM.R=[rx,0,rz];CAM.U=[-sp*rz,cp,sp*rx];CAM.T=T;CAM.dist=dist;
   CAM.px=T[0]-CAM.F[0]*dist;CAM.py=T[1]-CAM.F[1]*dist;CAM.pz=T[2]-CAM.F[2]*dist;
@@ -1009,6 +1017,7 @@ function land(a,b,pu,body,g){
   if(!game.cine)game.hitstop=Math.min(.12,.03+dmg*.006);game.shake=Math.max(game.shake,dmg*.45);game.hype+=dmg*.06;
   burst(g.x,g.y,a.face,big?14:7,big?'#fff6a0':'#ffffff',gz);
   SFX.hit(Math.min(1,dmg/14));SFX.cheer(Math.min(1,dmg/14)*.5);vib(Math.min(70,dmg*5|0));
+  b.lastHit={a,pu,zone,dmg,body,t:game.t};
   if(cine){game.cine.hit=true;game.cine.hitRt=game.cine.rt;game.cine.rip=b.rip[b.rip.length-1];game.cine.xr=xrayPhysics(a,b,pu,zone,dmg,body);SFX.crit();vib([90,50,160])}
   if(cine&&!body){knockdown(b);return}
   if(b.hp<=0||b.stun>1.9||(!body&&dmg>=8&&b.hp<28&&Math.random()<(28-b.hp)/45+b.stun*.15)||(zone==='KAKE'&&dmg>=10.5&&b.stun>.5&&Math.random()<.15+(100-b.hp)/250))knockdown(b);
@@ -1044,6 +1053,9 @@ function knockdown(f){
   if(f.down)return;
   f.down=true;f.punch=null;f.buf=null;f.kd++;f.kdR++;f.mash=0;f.inQ.length=0;f.liverT=0;game.clinch=null;
   if(!game.cine)game.slow=.9;game.shake=8;game.flash=game.cine?.25:.5;game.hype+=2;SFX.cheer(1);SFX.hit(1);vib([60,40,120]);
+  {const L=f.lastHit;if(!game.cine&&R3&&R3.fighters[0].xr&&L&&game.t-L.t<1.5){const sx=Math.sign(L.a.root.x-f.root.x)||1,rp=f.rip[f.rip.length-1]||{w:L2W(f.p[L.body?2:0].x,f.p[L.body?2:0].y,f.zs[L.body?2:0])};
+    if(!rp.w)rp.w=L2W(f.p[0].x,f.p[0].y,f.zs[0]);
+    game.cine={f,part:L.body?'body':'head',off:[sx*2,0,0],yaw:-sx*.55,dist:L.body?150:138,rt:.3,kz:1,hit:true,hitRt:0,rip:rp,xr:xrayPhysics(L.a,f,L.pu,L.zone,L.dmg,L.body),label:ZM[L.zone]&&ZM[L.zone].lab||'KNOCKOUT',zone:L.zone,retro:true};game.slow=0}}
   if(f.kdR>=3){endMatch(f.opp,'TKO');return}
   game.downF=f;game.state='count';game.count=0;game.countT=-.6;if(game.cine)game.cine.after='NERE!';else showMsg('NERE!',1.1);
   if(f.isAI){const ch=(f.hp<=0?.55:.9)-(f.kd-1)*.22+(game.diffKey==='latt'?-.15:game.diffKey==='svar'?.12:0);f.riseAt=Math.random()<ch?Math.floor(rand(3,9.5)):99}
@@ -1078,8 +1090,9 @@ function applyStats(on){const s=CAR.st;F[0].sPow=on?1+s.kraft*.06:1;F[0].sSpd=on
 function startMatch(career){
   game.mode='match';game.career=!!career;F[0].opp=F[1];resetArena();
   const opp=career?LADDER[Math.min(CAR.rank,LADDER.length-1)]:LOOKS[1];F[1].look=opp;
-  game.diff=DIFF[career?opp.diff:game.diffKey];game.diffKey=career?opp.diff:game.diffKey;
+  game.diff=career?mkDiff(opp):DIFF[game.diffKey];game.diffKey=career?opp.diff:game.diffKey;
   F[0].reset(270);F[1].reset(370);applyStats(career);
+  if(career&&opp.style){const st=opp.style;F[1].sPow=st.pow||1;F[1].sSpd=2-(st.spd||1);F[1].sKond=st.tough||1}
   Object.assign(game,{round:1,clock:game.roundLen,state:'intro',iT:1.9,slow:0,hitstop:0,cards:[[0,0],[0,0],[0,0]],lastCard:'',cine:null,cineCool:0,cineR:0,clinch:null});
   for(const k in habit)delete habit[k];habitN=0;
   parts.length=0;showMsg('ROND 1',1.5,career?F[0].look.name+' VS '+opp.name:'');SFX.bell();showPlayUI(true,false);
@@ -1111,7 +1124,7 @@ function openMenu(res){
 }
 function showCareer(on,res){$('#mainCard').classList.toggle('hide',on);$('#carCard').classList.toggle('hide',!on);if(on)renderCareer(res)}
 function renderCareer(res){
-  $('#ladder').innerHTML=LADDER.map((o,i)=>`<div class="lr ${i<CAR.rank?'done':i===CAR.rank?'next':''}"><span>#${LADDER.length-i}</span><span>${o.name}</span><span>${i<CAR.rank?'✓':i===CAR.rank?'◄':''}</span></div>`).join('')+(CAR.rank>=LADDER.length?'<div class="lr next">★ DU ÄR MÄSTARE ★</div>':'');
+  $('#ladder').innerHTML=LADDER.map((o,i)=>`<div class="lr ${i<CAR.rank?'done':i===CAR.rank?'next':''}"><span>#${LADDER.length-i}</span><span>${o.name} <small style="color:#ffd84a">${'★'.repeat(1+Math.round((o.lv||0)*4))}</small>${i===CAR.rank&&o.desc?`<br><small style="opacity:.75">${o.desc}</small>`:''}</span><span>${i<CAR.rank?'✓':i===CAR.rank?'◄':''}</span></div>`).join('')+(CAR.rank>=LADDER.length?'<div class="lr next">★ DU ÄR MÄSTARE ★</div>':'');
   const S=[['kraft','KRAFT'],['snabb','SNABBHET'],['kond','KONDITION']];
   $('#stats').innerHTML=`<div class="pts">POÄNG: ${CAR.pts} · VINSTER: ${CAR.wins}</div>`+S.map(([k,l])=>`<div class="srow"><span>${l}</span><span class="pips">${'■'.repeat(CAR.st[k])}${'□'.repeat(5-CAR.st[k])}</span><button data-s="${k}" ${CAR.pts<1||CAR.st[k]>=5?'disabled':''}>+</button></div>`).join('')+(res?`<div class="cres">${res}</div>`:'');
   const opp=LADDER[Math.min(CAR.rank,LADDER.length-1)];$('#carGo').textContent=CAR.rank>=LADDER.length?'FÖRSVARA TITELN':'MATCH: '+opp.name;
@@ -1185,7 +1198,7 @@ function separate(){
   if(d<50){const p=(50-d)/2;L.root.x-=p;R.root.x+=p}
   for(const[i,j,m]of[[0,0,30],[2,2,27],[0,2,24],[2,0,24]]){const a=L.p[i],b=R.p[j],dx=b.x-a.x,dy=b.y-a.y,dz=R.zs[j]-L.zs[i],dd=Math.hypot(dx,dy,dz);if(dd<m&&dx<m){const q=Math.min(4,(m-dd)*.6);L.root.x-=q;R.root.x+=q}}
 }
-function toCorner(f){const nr=game.state==='roundEnd',tx=f.idx===0?RING_L+(nr?30:80):RING_R-(nr?30:80);f.ctrl.move=clamp((tx-f.root.x)/25,-1,1)}
+function toCorner(f){const nr=game.state==='roundEnd'||game.state==='count'||game.state==='kdReset',tx=f.idx===0?RING_L+(nr?30:80):RING_R-(nr?30:80);f.ctrl.move=clamp((tx-f.root.x)/25,-1,1)}
 
 function step(dt){
   game.t+=dt;const st=game.state,[A,B]=F,tr=game.mode==='train';
@@ -1201,6 +1214,7 @@ function step(dt){
     for(const f of F){f.ctrl.block=f.ctrl.duck=f.ctrl.sway=false;f.ctrl.move=0}
     if(st==='menu')for(const f of F){if(!f.punch&&Math.random()<dt*1.1)f.throw(['straight','straight','hook','upper'][Math.random()*4|0],Math.random()<.5?0:1,false,false);if(Math.random()<dt*.3)f.ctrl.duck=true}
     if(st==='count'){const s=game.downF.opp;if(!s.down)toCorner(s)}
+    if(st==='kdReset')F.forEach(f=>{if(!f.down&&f.rising<=0)toCorner(f)});
     if(st==='roundEnd')F.forEach(toCorner);
   }
   const q=A.inQ;while(q.length&&q[0].at<=game.t){const p=q.shift();A.throw(p.type,p.hand,p.body,p.hay,p.mods)}
@@ -1230,8 +1244,9 @@ function step(dt){
     if(f.down){
       if(game.countT>=1){game.countT-=1;game.count++;showMsg(String(game.count),.7);SFX.tick();if(game.count>=10){endMatch(f.opp,'KO');return}}
       if(f.isAI){if(game.count>=f.riseAt)rise(f)}else{f.mash=Math.max(0,f.mash-dt*.3);if(f.mash>=1)rise(f)}
-    }else if(f.rising<=0){game.state='fight';showMsg('BOXAS!',.8)}
+    }else if(f.rising<=0){game.state='kdReset';game.kT=2.4;showMsg('TILL HÖRNAN',1.2)}
   }
+  else if(game.state==='kdReset'){game.kT-=dt;if(game.kT<=0){game.state='fight';showMsg('BOXAS!',.8);SFX.bell()}}
   else if(game.state==='over'){game.overT-=dt;if(game.overT<=0)openMenu(game.result)}
   for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.vy+=p.g*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.98;if(p.y>GROUND+2){p.y=GROUND+2;p.vy*=-.2;p.vx*=.5}if((p.life-=dt)<=0)parts.splice(i,1)}
   for(let i=rings.length-1;i>=0;i--){const r=rings[i];r.r+=(r.m-r.r)*dt*18;if((r.life-=dt)<=0)rings.splice(i,1)}
@@ -1310,7 +1325,7 @@ function playerCtrl(dt=1/120){
     const me=P3(f.p[3].x,f.p[3].y,0),op=P3(f.opp.p[3].x,f.opp.p[3].y,0),sdir=me&&op?(op[0]>=me[0]?1:-1):f.face;
     input.sdir=sdir;if(d>1){dx/=d;dy/=d}
     const lx=dx*sdir,cv=v=>{const a=clamp((Math.abs(v)-.15)/.6,0,1);return Math.sign(v)*a*a*(3-2*a)},dz=cv(lx),dzy=cv(dy);
-    dV=Math.max(0,dz);sV=Math.max(0,-dz);slp=-dzy}
+    dV=Math.max(0,dzy);sV=Math.max(0,-dz);slp=clamp(Math.max(0,-dzy)-Math.max(0,dz),-1,1)}  // ned = huka, bort = luta bakåt, upp/mot = slip
   if(keys.KeyA||keys.ArrowLeft)mx=-1;if(keys.KeyD||keys.ArrowRight)mx=1;if(keys.KeyS||keys.ArrowDown)dn=true;if(keys.KeyW||keys.ArrowUp)up=true;
   // fotspaken (nere i hörnet): ←→ gå, ↑↓ cirkla
   if(FS.id!==null){const rf=RAD()*.75,dx=clamp((FS.x-FS.ox)/rf,-1,1),dy=clamp((FS.y-FS.oy)/rf,-1,1),sd=input.sdir||1;mx=Math.abs(dx)>.2?dx:0;circ=Math.abs(dy)>.25?clamp(-dy*1.15,-1,1):0}
@@ -1324,7 +1339,9 @@ function playerCtrl(dt=1/120){
   c.move=mx;c.duck=dn;c.sway=up;c.duckV=dV;c.swayV=sV;c.slip=slp||(keys.KeyZ?-1:keys.KeyX?1:0);c.circle=circ;c.block=input.block||!!keys.KeyL;input.duck=dn||dV>.55||RS.low;
 }
 ctl.addEventListener('pointerdown',e=>{
-  e.preventDefault();audioInit();mash();
+  e.preventDefault();audioInit();
+  if(game.cine&&game.cine.steps&&game.cine.si>=0&&!game.cine.done&&xrayOn()){const sk=xraySkipBox(innerWidth,innerHeight),sx=e.clientX,sy=e.clientY;xrayStepAdvance(sx>=sk[0]&&sx<=sk[0]+sk[2]&&sy>=sk[1]&&sy<=sk[1]+sk[3]);return}
+  mash();
   const fp=footPad();if(e.clientX<innerWidth*.45&&FS.id===null&&Math.hypot(e.clientX-fp.x,e.clientY-fp.y)<fp.r*1.7){FS.id=e.pointerId;FS.ox=FS.x=fp.x;FS.oy=FS.y=fp.y;FS.x=e.clientX;FS.y=e.clientY}
   else if(e.clientX<innerWidth*.45){if(LS.id===null){const n=performance.now();LS.lean=false;LS.id=e.pointerId;LS.ox=LS.x=e.clientX;LS.oy=LS.y=e.clientY;LS.t0=n;LS.maxD=0;LS.mx=0;LS.my=0;if(LS.lean)vib(15)}}
   else if(RS.id===null){const n=performance.now();RS.low=e.clientY>innerHeight*.66;Object.assign(RS,{id:e.pointerId,ox:e.clientX,oy:e.clientY,x:e.clientX,y:e.clientY,pts:[{x:0,y:0,t:n}],armed:true,t0:n,lastMove:n,moved:false,maxD:0,minY:0,st:n})}
@@ -1369,7 +1386,9 @@ addEventListener('keydown',e=>{
 });
 addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='Space')chargeEnd()});
 addEventListener('contextmenu',e=>e.preventDefault());
-document.querySelectorAll('.diff button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.diff button').forEach(x=>x.classList.toggle('on',x===b));game.diffKey=b.dataset.d});
+let BW=0;try{BW=+localStorage.getItem('rs32bw')||0}catch(e){}
+document.querySelectorAll('#bwRow button').forEach(b=>{b.classList.toggle('on',+b.dataset.bw===BW);b.onclick=()=>{BW=+b.dataset.bw;try{localStorage.setItem('rs32bw',BW)}catch(e){}document.querySelectorAll('#bwRow button').forEach(x=>x.classList.toggle('on',x===b))}});
+document.querySelectorAll('.diff:not(#bwRow) button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.diff:not(#bwRow) button').forEach(x=>x.classList.toggle('on',x===b));game.diffKey=b.dataset.d});
 const fs=async()=>{audioInit();try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen({navigationUI:'hide'});await screen.orientation.lock('landscape')}catch(_){}};
 $('#go').onclick=()=>{fs();startMatch(false)};
 $('#tr').onclick=()=>{fs();startTrain(false)};
@@ -1818,10 +1837,10 @@ function mixAlign(M,h){const T=T3,A={};for(const g in MXMAP){const mn=MXMAP[g],m
   const r=vsub(h.bt[gi],h.bh[gi]),dg=new T.Vector3(r[0],r[1],r[2]).normalize();A[m]={gi,q:new T.Quaternion().setFromUnitVectors(dm,dg).multiply(M.BWq[m])}}
   M.align=A;M.hipOff=M.BWp[M.BI.Hips].clone().sub(new T.Vector3(...h.bh[h.BI.hips]))}
 // tvåledad IK på en arm i gruppens rum
-function mxIK(M,s,tg,w){if(w<=.001)return;const a=M.BI[s+'Arm'],e=M.BI[s+'ForeArm'],hd=M.BI[s+'Hand'],G=M.Gp,Q=M.Gq,T=T3;
+function mxIK(M,s,tg,w,pol){if(w<=.001)return;const a=M.BI[s+'Arm'],e=M.BI[s+'ForeArm'],hd=M.BI[s+'Hand'],G=M.Gp,Q=M.Gq,T=T3;
   const A=G[a],E=G[e],W=G[hd],L1=A.distanceTo(E),L2=E.distanceTo(W);const tgt=M.v1.copy(W).lerp(tg,w);
   const d=M.v2.copy(tgt).sub(A);let dl=d.length();if(dl<1e-4)return;dl=clamp(dl,Math.abs(L1-L2)+.5,(L1+L2)*.999);const u=d.normalize();
-  const pv=M.v3.copy(E).sub(A);pv.addScaledVector(u,-pv.dot(u));if(pv.lengthSq()<1e-6)pv.set(0,-1,0).addScaledVector(u,-u.y);pv.normalize();
+  const pv=M.v3.copy(E).sub(A);if(pol)pv.lerp(pol.clone().multiplyScalar(pv.length()+1e-3),Math.min(1,w*1.2));pv.addScaledVector(u,-pv.dot(u));if(pv.lengthSq()<1e-6)pv.set(0,-1,0).addScaledVector(u,-u.y);pv.normalize();
   const ca=clamp((L1*L1+dl*dl-L2*L2)/(2*L1*dl),-1,1),sa=Math.sqrt(1-ca*ca);
   const E2=new T.Vector3().copy(A).addScaledVector(u,ca*L1).addScaledVector(pv,sa*L1),W2=new T.Vector3().copy(A).addScaledVector(u,dl);
   const r1=new T.Quaternion().setFromUnitVectors(E.clone().sub(A).normalize(),E2.clone().sub(A).normalize());
@@ -1835,7 +1854,7 @@ function mixPose(o){
   const leadS=f.stance===1?'R':'L',mr=leadS==='R'?'_m':'',side=hd=>(hd?(leadS==='L'?'R':'L'):leadS)==='L'?'Left':'Right';
   for(let i=0;i<M.nb;i++)M.Lq[i].copy(M.restQ[i]);
   // 1) gard (loop)
-  mxSample(M,'Boxing'+mr,now*.95+f.seed,true,1);
+  mxSample(M,'Boxing'+mr,now*.78+f.seed,true,1);
   // 2) undanmanövrar ur Dodging-klippet
   if(M.dodge){const D=M.dodge,cn='Dodging_1_1'+mr;
     mxSample(M,cn,D.duck,false,clamp(f.duckA,0,1)*.95);mxSample(M,cn,D.sway,false,clamp(f.swayA,0,1)*.85);
@@ -1876,8 +1895,13 @@ function mixPose(o){
     const hdM=M.Gp[M.BI.Head],hdG=h.P[h.BI.head];
     for(const hand of[0,1]){const s=side(hand),gs=s==='Left'?'L':'R',wr=h.P[h.BI['hand.'+gs]];let w=0,tg;
       if(S.wb>.01){w=S.wb;tg=new T.Vector3(wr[0]-hdG[0]+hdM.x,wr[1]-hdG[1]+hdM.y,wr[2]-hdG[2]+hdM.z)}
-      if(pu&&S.hand===hand&&S.u!=null){const u=S.u,wi=(u<0?clamp(1+u/.12,0,1):clamp(1-u/.2,0,1))*.85;if(wi>w){w=wi;tg=new T.Vector3(wr[0],wr[1],wr[2])}}
-      if(w>0)mxIK(M,s,tg,w*(1-S.wr))}}
+      let pol=null;
+      if(pu&&S.hand===hand&&S.u!=null){const u=S.u,wi=(u<0?clamp(1+u/.12,0,1):clamp(1-u/.2,0,1))*.85;if(wi>w){w=wi;tg=new T.Vector3(wr[0],wr[1],wr[2])}
+        // krok/overhand: armen svingar ut i en bred båge med armbågen uppe innan den slår in
+        if((pu.type==='hook'||pu.type==='over')&&pu.phase!=='rec'){const tH=pu.w+pu.st/1.6,pr=clamp(pu.t/tH,0,1),sh=M.Gp[M.BI[s+'Arm']],lat=new T.Vector3(s==='Left'?1:-1,0,0).applyQuaternion(M.yaw),fv=new T.Vector3(fw[0],0,fw[2]).normalize(),
+            wd=sh.clone().addScaledVector(lat,pu.type==='hook'?40:30).addScaledVector(fv,pu.type==='hook'?12:4).add(new T.Vector3(0,pu.type==='hook'?2:14,0)),cw=M.Gp[M.BI[s+'Hand']].clone(),en=new T.Vector3(wr[0],wr[1],wr[2]);
+          const t2=pr<.55?cw.lerp(wd,ease(pr/.55)):wd.clone().lerp(en,ease((pr-.55)/.45));const wh=Math.min(1,pu.t/.06)*.92;if(wh>=w){w=wh;tg=t2}pol=lat.clone().add(new T.Vector3(0,.7,0)).normalize()}}
+      if(w>0)mxIK(M,s,tg,w*(1-S.wr),pol)}}
   (M.hdP||(M.hdP=new T.Vector3())).copy(M.Gp[M.BI.Head]);
   // skriv till benen
   for(const i of M.ord){const p=M.par[i],b=M.bones[i];if(p<0){b.quaternion.copy(M.Gq[i]);b.position.copy(M.Gp[i])}else b.quaternion.copy(M.q2.copy(M.Gq[p]).invert().multiply(M.Gq[i]))}
@@ -1994,30 +2018,44 @@ function buildXray(T,o){
   const crack=new T.LineSegments(crackG,crackM);crack.visible=false;crack.renderOrder=5;crack.frustumCulled=false;bones[BI.head].add(crack);
   const shock=new T.Mesh(sph,new T.MeshBasicMaterial({color:0x9fe0ff,transparent:true,opacity:.5,depthWrite:false,blending:T.AdditiveBlending}));shock.visible=false;shock.renderOrder=6;o.grp.add(shock);
   const skin=new T.MeshStandardMaterial({color:0x7fd0ff,emissive:0x0e3a66,roughness:.4,transparent:true,opacity:.2,depthWrite:false,flatShading:true});
-  return{list,skull,jaw,brain,ribs,lungs,heart,liver,stomach,crack,shock,skin,on:false,hh,C0,sw,yB};
+  const jcG=new T.BufferGeometry();jcG.setAttribute('position',new T.BufferAttribute(new Float32Array(3*60),3));const jcrack=new T.LineSegments(jcG,crackM);jcrack.visible=false;jcrack.renderOrder=5;jcrack.frustumCulled=false;bones[BI.head].add(jcrack);
+  const rcG=new T.BufferGeometry();rcG.setAttribute('position',new T.BufferAttribute(new Float32Array(3*80),3));const rcrack=new T.LineSegments(rcG,crackM);rcrack.visible=false;rcrack.renderOrder=5;rcrack.frustumCulled=false;bones[BI.spine].add(rcrack);
+  const frG=new T.TetrahedronGeometry(.55),frags=[];for(let i=0;i<7;i++){const m=new T.Mesh(frG,boneM);m.visible=false;m.renderOrder=2;bones[BI.head].add(m);frags.push(m)}
+  return{list,skull,jaw,brain,ribs,lungs,heart,liver,stomach,crack,shock,skin,on:false,hh,C0,sw,yB,jcrack,rcrack,frags,jaw0:{p:jaw.position.clone(),r:jaw.rotation.clone()}};
 }
 // röntgensekvens: hud tonas till glas, chockvåg, hjärnan slungas (contrecoup), sprickor växer, organ kläms
 function xray3(o){
   const X=o.xr,cn=game.cine,h=o.hum;if(!X||!h)return 0;
-  const on=!!(cn&&cn.hit&&cn.xr&&cn.f===o.f),t=on?cn.rt-cn.hitRt:0,a=on?clamp(t/.3,0,1)*cn.kz:0,vis=a>.02;
+  const on=!!(cn&&cn.hit&&cn.xr&&cn.f===o.f);let t=on?cn.rt-cn.hitRt:0;const a=on?clamp(t/.3,0,1)*cn.kz:0,vis=a>.02;
   if(vis!==X.on){X.on=vis;X.list.forEach(m=>m.visible=vis);h.mesh.material=vis?X.skin:o.skin;X.shock.visible=vis;
-    if(vis){X.xr=cn.xr;X.body=cn.xr.body;const bn=X.body?h.bones[h.BI.spine]:h.bones[h.BI.head],w=cn.rip.w;X.hitW=w.slice();
+    if(vis){X.xr=cn.xr;X.body=cn.xr.body;X.jcN=X.rcN=0;const bn=X.body?h.bones[h.BI.spine]:h.bones[h.BI.head],w=cn.rip.w;X.hitW=w.slice();
       // träffpunkt i benets lokala rum -> riktning för sprickor och hjärnans rörelse
       const v=new T3.Vector3(-w[0],w[1],w[2]);bn.worldToLocal(v);const c=X.body?new T3.Vector3(0,0,0):new T3.Vector3().copy(X.skull.position);X.dir=v.clone().sub(c).normalize();X.loc=v;
       if(!X.body){const P=X.crack.geometry.attributes.position.array,cen=X.skull.position,rad=X.skull.scale,n=Math.round(6+X.xr.frac*34);let k=0;
         const onS=d=>[cen.x+d.x*rad.x,cen.y+d.y*rad.y,cen.z+d.z*rad.z];
         for(let b=0;b<Math.min(5,1+Math.round(X.xr.frac*5));b++){let d=X.dir.clone();for(let s=0;s<n/4&&k<118;s++){const p0=onS(d);d.add(new T3.Vector3(rand(-.18,.18),rand(-.18,.18),rand(-.18,.18))).normalize();const p1=onS(d);P.set(p0,k*3);P.set(p1,k*3+3);k+=2}}
         X.nCrack=k;X.crack.geometry.attributes.position.needsUpdate=true}else X.nCrack=0}}
-  X.crack.visible=vis&&!X.body&&X.xr&&X.xr.frac>0;
-  if(!vis)return 0;
+  const STP=cn&&cn.steps&&cn.si>=0?cn.steps[cn.si]:null,stK=STP?STP.k:'',tl=STP?cn.rt-cn.stepT0:0,past=k=>!!(cn&&cn.steps&&cn.steps.findIndex(q=>q.k===k)<cn.si);
+  X.crack.visible=vis&&!X.body&&X.xr&&X.xr.frac>0&&(!cn.steps||stK==='bone'||stK==='jaw'||stK==='sum'||past('bone'));
+  if(!vis){X.jcrack.visible=X.rcrack.visible=false;X.frags.forEach(m=>m.visible=false);X.jaw.position.copy(X.jaw0.p);X.jaw.rotation.copy(X.jaw0.r);return 0}
+  {// käkbrott: käken förskjuts, spricka växer, flisor flyger
+    const jb=X.xr&&!X.body&&X.xr.zone==='KAKE'&&X.xr.frac>0,act=stK==='jaw',pj=jb?(act?clamp(tl/1.1,0,1):(past('jaw')||stK==='sum')?1:0):0,hh=X.hh,sd=Math.sign(X.dir?X.dir.x:1)||1;
+    X.jaw.position.set(X.jaw0.p.x-sd*hh*.07*pj*(.5+X.xr.frac),X.jaw0.p.y-hh*.05*pj,X.jaw0.p.z);X.jaw.rotation.set(X.jaw0.r.x+.25*pj,X.jaw0.r.y+sd*.3*pj,X.jaw0.r.z);
+    X.jcrack.visible=pj>0;if(pj>0){if(!X.jcN){const P=X.jcrack.geometry.attributes.position.array,c=X.jaw0.p,bx=c.x+sd*hh*.22;let k=0,y=c.y+hh*.06,z=c.z+hh*.18;for(let i=0;i<9;i++){const y2=y-hh*.025,z2=z+rand(-hh*.03,hh*.03),x2=bx+rand(-hh*.02,hh*.02);P.set([bx+rand(-hh*.015,hh*.015),y,z],k*3);P.set([x2,y2,z2],k*3+3);k+=2;y=y2;z=z2}X.jcN=k;X.jcrack.geometry.attributes.position.needsUpdate=true}
+      X.jcrack.geometry.setDrawRange(0,Math.round(X.jcN*clamp(pj*1.6,0,1)));X.jcrack.material.opacity=.7+.3*Math.sin(cn.rt*18)}
+    X.frags.forEach((m,i)=>{m.visible=jb&&act&&tl>.25;if(!m.visible)return;const u=tl-.25,a=i*.9,c=X.jaw0.p;m.position.set(c.x+sd*hh*(.22+u*(.25+.08*Math.cos(a))),c.y+hh*(.03+u*.35*Math.sin(a+1)-u*u*.5),c.z+hh*(.2+u*.25*Math.sin(a)));m.rotation.set(u*7+a,u*5,a);m.scale.setScalar(.6+.5*((i*37)%7)/7)});
+    // revbensspricka
+    const rb=X.body&&X.xr&&X.xr.frac>0&&X.xr.zone!=='LEVER'&&X.xr.zone!=='SOLAR',pr=rb?(stK==='ribs'?clamp(tl/1,0,1):(past('ribs')||stK==='sum')?1:0):0;X.rcrack.visible=pr>0;
+    if(pr>0){if(!X.rcN){const P=X.rcrack.geometry.attributes.position.array,L=X.loc;let k=0;for(let b=0;b<3;b++){let x=L.x,y=L.y+(b-1)*2.2,z=L.z+.6;for(let i=0;i<6;i++){const x2=x+(Math.sign(L.x)||1)*rand(.6,1.4),y2=y+rand(-.6,.6);P.set([x,y,z],k*3);P.set([x2,y2,z],k*3+3);k+=2;x=x2;y=y2}}X.rcN=k;X.rcrack.geometry.attributes.position.needsUpdate=true}X.rcrack.geometry.setDrawRange(0,Math.round(X.rcN*pr))}
+  }
   X.skin.opacity=lerp(1,.17,a);X.skin.transparent=true;
-  const xr=X.xr,env=Math.exp(-t*2.2);
+  const xr=X.xr;if(STP){t=(stK==='brain'||stK==='head'||stK==='force'||stK==='comp'||stK==='liver'||stK==='solar'||stK==='ribs')?tl:(stK==='bone'||stK==='jaw')?.25+tl*.8:3}const env=Math.exp(-t*2.2);
   // chockvåg ut från träffpunkten
   const sk=clamp((t-.05)/.6,0,1);X.shock.position.set(X.hitW[0],X.hitW[1],X.hitW[2]);X.shock.scale.setScalar(2+sk*26);X.shock.material.opacity=.55*(1-sk);
   if(!X.body){
     const sl=Math.sin(t*15)*env*clamp(xr.shift*.5,.6,3),bb=X.brain.userData.base;X.brain.position.set(bb.x-X.dir.x*sl,bb.y-X.dir.y*sl*.6,bb.z-X.dir.z*sl);
     const hit=Math.max(0,-Math.sin(t*15))*env;X.brain.material.emissive.setRGB(1,.35+.3*(1-hit),.5*(1-hit));X.brain.material.emissiveIntensity=.45+hit*1.4*(.4+xr.brain);
-    X.crack.geometry.setDrawRange(0,Math.round(X.nCrack*clamp((t-.25)/.9,0,1)));X.crack.material.opacity=.6+.4*Math.sin(t*20);
+    X.crack.geometry.setDrawRange(0,Math.round(X.nCrack*(STP&&stK!=='bone'&&stK!=='jaw'?1:clamp((t-.25)/.9,0,1))));X.crack.material.opacity=.6+.4*Math.sin(t*20);
     X.skull.material.emissive.setRGB(.48+.5*xr.frac*Math.max(0,Math.sin(t*12)),.63,.78);
   }else{
     const sq=Math.max(0,Math.sin(Math.min(t,1.2)*2.6))*env*(.25+.5*(xr.organ||0)),lv=X.liver.userData.base;
@@ -2028,32 +2066,52 @@ function xray3(o){
   }
   return a;
 }
+// ---------- röntgen-genomgång: kameran zoomar in på varje skadat område, du bläddrar själv ----------
+function xraySteps(o,cn){const X=o.xr,h=o.hum,xr=cn.xr,f0=n=>Math.round(n).toLocaleString('sv-SE');
+  const wp=(bn,m)=>()=>{const i=h.BI[bn],p=m.userData.base||m.position;return vadd(h.P[i],qrot(h.Q[i],[p.x,p.y,p.z]))};
+  const hitP=()=>X.hitW,kg=f0(xr.F/9.81),kmh=(xr.v*3.6).toFixed(0),S=[];
+  S.push({k:'force',title:'SLAGETS KRAFT',val:f0(xr.F)+' N',dist:96,at:hitP,txt:[`Handsken träffar i ${kmh} km/h med ${xr.m.toFixed(1)} kg effektiv massa (arm + axel + kropp).`,`Kontakten varar bara 12 ms. Under den tiden överförs ${xr.E.toFixed(0)} J – som om ${kg} kg trycktes mot ${xr.body?'kroppen':'huvudet'} på ett ögonblick.`]});
+  if(!xr.body){
+    S.push({k:'head',title:'HUVUDET RYCKS',val:f0(xr.g)+' g',dist:78,at:wp('head',X.skull),txt:[`Huvudet accelereras med ${f0(xr.g)} gånger tyngdkraften.`,`Nackmusklerna hinner inte bromsa – huvudet roterar ${xr.zone==='KAKE'||xr.zone==='TINNING'?'åt sidan och vrider hjärnstammen':'bakåt'}.`]});
+    S.push({k:'brain',title:'HJÄRNAN',val:f0(xr.brain*100)+' %',dist:64,at:wp('head',X.brain),txt:[`Hjärnan flyter i ryggmärgsvätska och släpar efter skallen. Den slår i skallbenet på träffsidan (coup) och studsar mot motsatt sida (contrecoup), ${xr.shift.toFixed(1)} mm.`,xr.brain>.5?'Signalerna i hjärnstammen störs – medvetandet slocknar för ett ögonblick. Det är det som är en knockout.':'Risk för hjärnskakning: yrsel, suddig syn och ostadiga ben.']});
+    if(xr.zone==='KAKE')S.push({k:'jaw',title:'KÄKBENET (MANDIBULA)',val:xr.frac>0?'BROTT':'HÅLLER',dist:58,at:wp('head',X.jaw),txt:xr.frac>0?[`Kraften ${f0(xr.F)} N är ${(xr.F/2000).toFixed(1)} gånger käkbenets brottgräns (~2 000 N).`,'Benet spricker vid käkvinkeln, käkhalvan förskjuts och tänderna slås ihop. Benflisor lossnar.']:['Käken pressas bakåt men benet håller – brottgränsen är ~2 000 N.','Stöten går i stället vidare upp i skallen och vrider huvudet.']});
+    else S.push({k:'bone',title:xr.bone,val:xr.frac>0?f0(xr.frac*100)+' % SPRICKA':'HÅLLER',dist:62,at:wp('head',X.skull),txt:xr.frac>0?[`Trycket överstiger benets hållfasthet${xr.zone==='TINNING'?' – tinningen är skallens tunnaste del (ca 2 mm)':''}.`,'Sprickor sprider sig ut från träffpunkten genom benet.']:['Benet böjer sig in men fjädrar tillbaka – ingen fraktur.','Energin tas upp av hjärnan och nacken i stället.']});
+  }else{
+    S.push({k:'comp',title:'KROPPEN TRYCKS IN',val:(xr.comp/10).toFixed(1)+' cm',dist:92,at:wp('spine',X.liver),txt:[`Bröstkorgen och buken pressas in ${(xr.comp/10).toFixed(1)} cm av slaget.`,'Revbenen böjs inåt och trycket fortplantar sig till organen bakom.']});
+    if(xr.zone==='LEVER')S.push({k:'liver',title:'LEVERN',val:f0(clamp(xr.F/4500,0,1)*100)+' %',dist:70,at:wp('spine',X.liver),txt:['Levern ligger nästan oskyddad under höger revbensbåge. Slaget klämmer den mot ryggraden.','Vagusnerven skickar en smärtchock: blodtrycket rasar, benen viker sig – man kan inte resa sig även om man är vid medvetande.']});
+    else if(xr.zone==='SOLAR')S.push({k:'solar',title:'SOLAR PLEXUS',val:(xr.F/1100).toFixed(1)+' s',dist:72,at:wp('chest',X.heart),txt:['Nervknuten under bröstbenet träffas och mellangärdet krampar.',`Andningen stannar i ca ${(xr.F/1100).toFixed(1)} sekunder – kroppen kämpar efter luft.`]});
+    else S.push({k:'ribs',title:'REVBENEN',val:xr.frac>0?f0(xr.frac*100)+' % SPRICKA':'HÅLLER',dist:70,at:wp('spine',X.liver),txt:xr.frac>0?[`Revbenen böjs förbi sin gräns och spricker – ${xr.organ>0?'risk för inre blödning':'skarp smärta vid varje andetag'}.`,'Sprickan går tvärs över revbenet där slaget tog.']:['Revbenen fjädrar och håller.','Men smärtan och tryckchocken tar andan ur kroppen.']});
+  }
+  S.push({k:'sum',title:cn.label==='KNOCKOUT'?'RESULTAT':'RESULTAT: '+cn.label,val:'',dist:118,at:xr.body?wp('spine',X.liver):wp('head',X.skull),txt:[xr.body?'Smärtchocken stänger av benen – boxaren går ner.':'Hjärnan "startar om" – musklerna slappnar av och kroppen faller som en ragdoll.','TRYCK FÖR ATT FORTSÄTTA MATCHEN']});
+  return S}
+function xrayStepAdvance(skip){const cn=game.cine;if(!cn||!cn.steps)return false;if(skip||cn.si>=cn.steps.length-1){cn.done=true;cn.doneRt=cn.rt}else{cn.si++;cn.stepT0=cn.rt}SFX.tick&&SFX.tick();return true}
 // förklarande etiketter i klartext, en i taget, med linje till rätt ställe på kroppen
 function xrayOn(){const cn=game.cine;if(!cn||!R3)return false;const o=R3.fighters.find(q=>q.f===cn.f);return!!(o&&o.xr&&o.xr.on)}
 const gameWH=()=>[W,H];
 function xrayLabels(ctx,W,H){
   const cn=game.cine;if(!cn||!cn.hit||!cn.xr||!xrayOn())return false;const o=R3.fighters.find(q=>q.f===cn.f),[GW,GH]=gameWH(),PS=w=>{const q=PW(w);return q?[q[0]*W/GW,q[1]*H/GH]:null};
-  const X=o.xr,h=o.hum,xr=cn.xr,t=cn.rt-cn.hitRt,al=clamp(t/.3,0,1)*cn.kz,wp=(bn,m)=>{const i=h.BI[bn],p=m.userData.base||m.position;return vadd(h.P[i],qrot(h.Q[i],[p.x,p.y,p.z]))};
-  const kg=Math.round(xr.F/9.81),L=[];
-  L.push(['SLAGETS KRAFT',Math.round(xr.F).toLocaleString('sv-SE')+' N','som '+kg+' kg som trycks mot '+(xr.body?'kroppen':'huvudet')+' på ett ögonblick',X.hitW]);
-  if(!xr.body){
-    L.push(['HUVUDET RYCKS',Math.round(xr.g)+' g',Math.round(xr.g)+' gånger tyngdkraften – huvudet slungas bakåt',wp('head',X.skull)]);
-    L.push(['HJÄRNAN SLÅR I SKALLEN',Math.round(xr.brain*100)+' %','risk för hjärnskakning – hjärnan studsar mot skallbenet',wp('head',X.brain)]);
-    L.push([xr.bone+(xr.frac>0?' SPRICKER':' HÅLLER'),Math.round(xr.frac*100)+' %',xr.frac>0?'benet får sprickor av trycket':'benet tål kraften – ingen fraktur',wp('head',xr.zone==='KAKE'?X.jaw:X.skull)]);
-  }else{
-    L.push(['KROPPEN TRYCKS IN',(xr.comp/10).toFixed(1)+' cm','bröstkorgen pressas in av slaget',wp('spine',X.liver)]);
-    if(xr.zone==='LEVER')L.push(['LEVERN KLÄMS',Math.round(clamp(xr.F/4500,0,1)*100)+' %','nervchock – kroppen viker sig av smärta',wp('spine',X.liver)]);
-    else if(xr.zone==='SOLAR')L.push(['SOLAR PLEXUS',(xr.F/1100).toFixed(1)+' s','mellangärdet krampar – andningen stannar',wp('chest',X.heart)]);
-    else L.push(['REVBENEN',Math.round((xr.frac||0)*100)+' %','risk att revbenen spricker',wp('spine',X.liver)]);
-  }
-  const fs=Math.round(clamp(W/62,10,20)),bw=Math.min(W*.44,fs*30),x0=Math.max(14,W*.03),y0=H*.3;ctx.save();ctx.textBaseline='top';ctx.textAlign='left';
-  L.forEach((l,i)=>{const ti=.15+i*.75,k=clamp((t-ti)/.25,0,1)*al;if(k<=0)return;const y=y0+i*(fs*3.4),cur=i===Math.min(L.length-1,Math.floor((t-.15)/.75));
-    ctx.globalAlpha=k*(cur?1:.6);ctx.fillStyle='rgba(2,12,26,.78)';ctx.fillRect(x0-6,y-4,bw,fs*2.9);ctx.fillStyle=cur?'#7fe8ff':'#5aa8c8';ctx.fillRect(x0-6,y-4,3,fs*2.9);
-    ctx.font=`bold ${fs}px monospace`;ctx.fillStyle='#ffffff';ctx.fillText(l[0],x0,y);ctx.fillStyle=cur?'#ffd84a':'#c8b060';ctx.textAlign='right';ctx.fillText(l[1],x0+bw-14,y);ctx.textAlign='left';
-    ctx.font=`${Math.round(fs*.78)}px monospace`;ctx.fillStyle='#bfe6ff';ctx.fillText(l[2],x0,y+fs*1.35);
-    if(cur&&l[3]){const s=PS(l[3]);if(s){ctx.strokeStyle='#7fe8ff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x0+bw-6,y+fs);ctx.lineTo(s[0],s[1]);ctx.stroke();ctx.beginPath();ctx.arc(s[0],s[1],4+2*Math.sin(t*10),0,6.283);ctx.stroke()}}});
+  if(!cn.steps){cn.steps=xraySteps(o,cn);cn.si=-1}
+  const t=cn.rt-cn.hitRt;if(cn.si<0){if(t>.75){cn.si=0;cn.stepT0=cn.rt}else return true}
+  const S=cn.steps[cn.si],tl=cn.rt-cn.stepT0,al=clamp(tl/.3,0,1)*cn.kz*(cn.done?clamp(1-(cn.rt-cn.doneRt)/.3,0,1):1);if(al<=0)return true;
+  const fs=Math.round(clamp(W/62,10,20)),bw=Math.min(W*.4,fs*29),x0=W-bw-Math.max(14,W*.035),y0=H*.2,lh=fs*1.25;
+  ctx.save();ctx.globalAlpha=al;ctx.textBaseline='top';ctx.textAlign='left';
+  // radbryt beskrivningen
+  ctx.font=`${Math.round(fs*.8)}px monospace`;const lines=[];for(const para of S.txt){let cur='';for(const w of para.split(' ')){const tr=cur?cur+' '+w:w;if(ctx.measureText(tr).width>bw-24){lines.push(cur);cur=w}else cur=tr}lines.push(cur);lines.push('')}lines.pop();
+  // texten skrivs fram som på en teleprinter
+  const nch=Math.floor(tl*120);let used=0;const bh=fs*2.2+lines.length*lh*.85+fs*1.6;
+  ctx.fillStyle='rgba(2,12,26,.84)';ctx.fillRect(x0-8,y0-8,bw,bh);ctx.fillStyle='#7fe8ff';ctx.fillRect(x0-8,y0-8,3,bh);
+  ctx.font=`bold ${Math.round(fs*.7)}px monospace`;ctx.fillStyle='#5aa8c8';ctx.fillText(`RÖNTGEN ${cn.si+1}/${cn.steps.length}`,x0,y0-2);
+  ctx.font=`bold ${fs}px monospace`;ctx.fillStyle='#ffffff';ctx.fillText(S.title,x0,y0+fs*.8);if(S.val){ctx.fillStyle='#ffd84a';ctx.textAlign='right';ctx.fillText(S.val,x0+bw-18,y0+fs*.8);ctx.textAlign='left'}
+  ctx.font=`${Math.round(fs*.8)}px monospace`;lines.forEach((l,i)=>{const left=nch-used;used+=l.length;if(left<=0)return;ctx.fillStyle=l.startsWith('TRYCK')?'#ffd84a':'#bfe6ff';ctx.fillText(l.slice(0,left),x0,y0+fs*2.3+i*lh*.85)});
+  // linje till stället på kroppen
+  const wp=S.at&&S.at(),sp=wp&&PS(wp);if(sp){const k=clamp(tl/.4,0,1);ctx.strokeStyle='#7fe8ff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x0-8,y0+fs*1.3);ctx.lineTo(lerp(x0-8,sp[0],k),lerp(y0+fs*1.3,sp[1],k));ctx.stroke();if(k>=1){ctx.beginPath();ctx.arc(sp[0],sp[1],6+3*Math.sin(tl*8),0,6.283);ctx.stroke()}}
+  // stegprickar och knappar
+  const py=y0+bh+fs*.6;cn.steps.forEach((q,i)=>{ctx.fillStyle=i===cn.si?'#ffd84a':i<cn.si?'#7fe8ff':'rgba(127,232,255,.3)';ctx.beginPath();ctx.arc(x0+i*fs*1.1+4,py,fs*.28,0,6.283);ctx.fill()});
+  ctx.font=`bold ${Math.round(fs*.8)}px monospace`;ctx.fillStyle=`rgba(255,216,74,${.6+.4*Math.sin(cn.rt*5)})`;ctx.fillText(cn.si<cn.steps.length-1?'TRYCK FÖR NÄSTA ▶':'TRYCK FÖR ATT FORTSÄTTA ▶',x0,py+fs*.7);
+  const sk=xraySkipBox(W,H);ctx.fillStyle='rgba(2,12,26,.75)';ctx.fillRect(sk[0],sk[1],sk[2],sk[3]);ctx.strokeStyle='#5aa8c8';ctx.lineWidth=1;ctx.strokeRect(sk[0],sk[1],sk[2],sk[3]);ctx.fillStyle='#bfe6ff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('HOPPA ÖVER ✕',sk[0]+sk[2]/2,sk[1]+sk[3]/2);
   ctx.restore();return true;
 }
+const xraySkipBox=(W,H)=>{const w=Math.min(190,W*.22),h=Math.max(30,H*.08);return[W-w-W*.04,H*.82,w,h]};
 // Fysikmotor: cannon-es (MIT, github.com/pmndrs/cannon-es).
 // ---------- aktiv ragdoll (som Euphoria): stela kroppsdelar + leder med muskelmotorer som jagar animationen ----------
 // Muskelstyrkan (tonus) sjunker när boxaren är skakad och nästan helt vid knockout – då faller kroppen fritt med fysik.
@@ -2231,9 +2289,9 @@ function init3D(THREE){
   const chain=new T.Mesh(new T.CylinderGeometry(1,1,1,6),new T.MeshStandardMaterial({color:0x9aa0aa,metalness:.8,roughness:.3}));scene.add(chain);
   // retrofilter: låg upplösning, färgreducering, Bayer-dithering, konturer från djupbufferten
   const rt=new T.WebGLRenderTarget(16,16,{depthBuffer:true,samples:4});rt.texture.minFilter=rt.texture.magFilter=T.LinearFilter;rt.texture.colorSpace=T.LinearSRGBColorSpace;
-  const post=new T.ShaderMaterial({uniforms:{tC:{value:rt.texture},tD:{value:null},res:{value:new T.Vector2(16,16)},cn:{value:4},cf:{value:3200},lv:{value:30},time:{value:0},xr:{value:0}},
+  const post=new T.ShaderMaterial({uniforms:{tC:{value:rt.texture},tD:{value:null},res:{value:new T.Vector2(16,16)},cn:{value:4},cf:{value:3200},lv:{value:30},time:{value:0},xr:{value:0},bw:{value:0}},
     vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',
-    fragmentShader:`uniform sampler2D tC,tD;uniform vec2 res;uniform float cn,cf,lv,time,xr;varying vec2 vUv;
+    fragmentShader:`uniform sampler2D tC,tD;uniform vec2 res;uniform float cn,cf,lv,time,xr,bw;varying vec2 vUv;
       float ld(vec2 u){float z=texture2D(tD,u).x*2.-1.;return 2.*cn*cf/(cf+cn-z*(cf-cn));}
       vec3 aces(vec3 x){return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);}
       float b2(vec2 a){a=floor(a);return fract(dot(a,vec2(.5,a.y*.75)));}
@@ -2247,6 +2305,7 @@ function init3D(THREE){
         vec3 gl=(grade(uv+vec2(3.*p.x,0.))+grade(uv-vec2(3.*p.x,0.))+grade(uv+vec2(0.,3.*p.y))+grade(uv-vec2(0.,3.*p.y)))*.25;c+=max(gl-.55,0.)*.6;
         c=mix(c,c*vec3(.55,.8,1.15)*.8+vec3(0.,.015,.04),xr);
         float sl=fract(gl_FragCoord.y/3.);c*=mix(1.,.7,smoothstep(.28,.5,abs(sl-.5)));float nz=fract(sin(dot(floor(gl_FragCoord.xy/2.)+floor(time*30.),vec2(12.9898,78.233)))*43758.5453);c+=(nz-.5)*.05;c*=1.+.05*smoothstep(.0,.06,.06-abs(fract(uv.y*.7-time*.12)-.5));
+        float lu=dot(c,vec3(.3,.59,.11));c=mix(c,vec3(lu*1.04,lu,lu*.9)*1.08,bw*(1.-xr*.6));
         float m=mod(gl_FragCoord.x,3.);vec3 mask=m<1.?vec3(1.,.74,.74):m<2.?vec3(.74,1.,.74):vec3(.74,.74,1.);c*=mix(vec3(1.),mask,.32)*1.16;
         float v=16.*uv.x*uv.y*(1.-uv.x)*(1.-uv.y);c*=pow(v,.22);c*=.985+.015*sin(time*62.);
         gl_FragColor=vec4(c,1.);}`});
@@ -2357,7 +2416,7 @@ function draw3(){
   // svett: huden blir blankare ju tröttare och mer slagen boxaren är
   for(const o of R.fighters){const f=o.f,sw=clamp((1-f.stam/100)*.6+(game.round-1)*.15+(100-f.hp)/250,0,1);for(const m of new Set([o.skin,o.torsoM])){if(!m.isMeshPhysicalMaterial)continue;m.clearcoat=.12+.85*sw;m.clearcoatRoughness=.42-.3*sw;m.roughness=.52-.18*sw}}
   let xa=0;for(const o of R.fighters)xa=Math.max(xa,xray3(o));R.post.uniforms.xr.value=xa;
-  const c=R.cam;c.position.set(-CAM.px,CAM.py,CAM.pz);c.up.set(0,1,0);c.lookAt(-CAM.T[0],CAM.T[1],CAM.T[2]);c.setViewOffset(W,R.fullH,-SX,2*R.d-SY,W,H);R.post.uniforms.time.value=performance.now()/1000;
+  const c=R.cam;c.position.set(-CAM.px,CAM.py,CAM.pz);c.up.set(0,1,0);c.lookAt(-CAM.T[0],CAM.T[1],CAM.T[2]);c.setViewOffset(W,R.fullH,-SX,2*R.d-SY,W,H);R.post.uniforms.time.value=performance.now()/1000;R.post.uniforms.bw.value+=(BW-R.post.uniforms.bw.value)*.15;
   R.renderer.setRenderTarget(R.rt);R.renderer.render(R.scene,c);R.renderer.setRenderTarget(null);R.renderer.render(R.pScene,R.pCam);
 }
 // automatisk kvalitet: för låg bildfrekvens -> lägre upplösning/skuggor -> till sist den gamla renderaren
@@ -2386,6 +2445,48 @@ function render3(rdt){
     if(game.cine.hit){const a=Math.max(0,.35-(game.cine.rt-game.cine.hitRt)*.6);if(a>0){ctx.fillStyle=`rgba(255,240,220,${a})`;ctx.fillRect(0,0,W,H)}}}
 }
 
+
+// ---------- 50-talsvardagsrummet: TV-möbel, damm på rutan och någon som tittar ----------
+const ROOM={z:.38,drawn:-1,dust:null,cv:null};
+function roomDraw(){const cv=ROOM.cv||(ROOM.cv=document.getElementById('room'));if(!cv)return;const dpr=Math.min(1.5,devicePixelRatio||1),W0=innerWidth,H0=innerHeight;
+  if(cv.width!==Math.round(W0*dpr)||cv.height!==Math.round(H0*dpr)){cv.width=Math.round(W0*dpr);cv.height=Math.round(H0*dpr);ROOM.drawn=-1}
+  const z=ROOM.z;if(Math.abs(z-ROOM.drawn)<.0015)return;ROOM.drawn=z;const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,W0,H0);
+  const ez=z*z*(3-2*z),b=Math.min(W0,H0)*.022;
+  // rutans hål: litet i rummet (menyn) -> hela skärmen när matchen pågår
+  const sw=lerp(W0*.5,W0-2*b,ez),sh=lerp(H0*.5,H0-2*b,ez),sx=(W0-sw)/2,sy=lerp(H0*.17,b,ez),rr=Math.min(sw,sh)*.09;
+  const bz=lerp(Math.min(sw,sh)*.14,b,ez); // bredd på TV-lådan runt rutan
+  const rrect=(x,y,w,h,r)=>{c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()};
+  c.save();c.beginPath();c.rect(0,0,W0,H0);rrect(sx,sy,sw,sh,rr);c.clip('evenodd');
+  if(ez<.995){// tapet, golv och lampsken
+    let g=c.createLinearGradient(0,0,0,H0);g.addColorStop(0,'#2c3326');g.addColorStop(.72,'#232a1f');g.addColorStop(.72,'#3a2416');g.addColorStop(1,'#1d120b');c.fillStyle=g;c.fillRect(0,0,W0,H0);
+    c.globalAlpha=.16;c.fillStyle='#cfc09a';for(let x=0;x<W0;x+=26){c.fillRect(x,0,3,H0*.72);for(let y=14;y<H0*.72;y+=34){c.beginPath();c.arc(x+13,y,2.2,0,6.283);c.fill()}}c.globalAlpha=1;
+    g=c.createRadialGradient(W0*.1,H0*.28,4,W0*.1,H0*.28,W0*.55);g.addColorStop(0,'rgba(255,200,120,.32)');g.addColorStop(1,'rgba(255,200,120,0)');c.fillStyle=g;c.fillRect(0,0,W0,H0);
+    // golvlampa
+    c.fillStyle='#120c08';c.fillRect(W0*.1-2,H0*.3,4,H0*.45);c.beginPath();c.moveTo(W0*.1-26,H0*.3);c.lineTo(W0*.1+26,H0*.3);c.lineTo(W0*.1+16,H0*.18);c.lineTo(W0*.1-16,H0*.18);c.closePath();c.fillStyle='#e8c890';c.fill();
+    // TV-möbel: trälåda, högtalarduk och rattar
+    const cx=sx-bz,cy=sy-bz,cw=sw+2*bz,chh=sh+bz*2.9;g=c.createLinearGradient(cx,0,cx+cw,0);g.addColorStop(0,'#4a2a14');g.addColorStop(.5,'#6b3e1e');g.addColorStop(1,'#3e2210');
+    c.fillStyle=g;c.beginPath();rrect(cx,cy,cw,chh,bz*.6);c.fill();c.strokeStyle='rgba(0,0,0,.25)';c.lineWidth=1;for(let i=0;i<14;i++){const y=cy+chh*(i+.5)/14;c.beginPath();c.moveTo(cx+4,y);c.bezierCurveTo(cx+cw*.3,y+4,cx+cw*.6,y-4,cx+cw-4,y+2);c.stroke()}
+    const gy=sy+sh+bz*.45,gh=bz*1.9;c.fillStyle='#2a1a0e';c.beginPath();rrect(sx+sw*.06,gy,sw*.62,gh,6);c.fill();c.strokeStyle='rgba(200,160,100,.18)';for(let x=sx+sw*.06+4;x<sx+sw*.68;x+=5){c.beginPath();c.moveTo(x,gy+3);c.lineTo(x,gy+gh-3);c.stroke()}
+    for(const k of[0,1]){const kx=sx+sw*(.8+k*.12),ky=gy+gh/2,kr=gh*.32;const kg=c.createRadialGradient(kx-kr*.3,ky-kr*.3,1,kx,ky,kr);kg.addColorStop(0,'#d8c8a8');kg.addColorStop(1,'#5a4a32');c.fillStyle=kg;c.beginPath();c.arc(kx,ky,kr,0,6.283);c.fill()}
+    c.fillStyle='#1a0e06';c.fillRect(cx+cw*.08,cy+chh,6,H0*.06);c.fillRect(cx+cw*.92-6,cy+chh,6,H0*.06);
+  }else{c.fillStyle='#0c0907';c.fillRect(0,0,W0,H0)}
+  // ram närmast glaset
+  c.restore();c.save();c.beginPath();rrect(sx,sy,sw,sh,rr);c.lineWidth=Math.max(3,bz*.25);c.strokeStyle='#0d0b0a';c.stroke();
+  // damm, fläckar och fingeravtryck på glaset
+  c.clip();if(!ROOM.dust){const R=[];let sd=7;const rn=()=>{sd=(sd*16807)%2147483647;return sd/2147483647};
+    for(let i=0;i<170;i++)R.push({t:0,x:rn(),y:rn(),r:.4+rn()*rn()*2.2,a:.08+rn()*.28});for(let i=0;i<7;i++)R.push({t:1,x:rn(),y:rn(),l:.02+rn()*.05,k:rn()*6.28,a:.12+rn()*.15});for(let i=0;i<3;i++)R.push({t:2,x:rn(),y:rn(),r:.08+rn()*.1,a:.03+rn()*.03});ROOM.dust=R}
+  for(const d of ROOM.dust){const x=sx+d.x*sw,y=sy+d.y*sh;if(d.t===0){c.fillStyle=`rgba(225,220,205,${d.a})`;c.beginPath();c.arc(x,y,d.r,0,6.283);c.fill()}
+    else if(d.t===1){c.strokeStyle=`rgba(215,210,195,${d.a})`;c.lineWidth=.7;c.beginPath();c.moveTo(x,y);c.quadraticCurveTo(x+Math.cos(d.k)*sw*d.l,y+Math.sin(d.k*1.7)*sw*d.l*.6,x+Math.cos(d.k+1)*sw*d.l*1.4,y+Math.sin(d.k+1)*sw*d.l);c.stroke()}
+    else{const g=c.createRadialGradient(x,y,1,x,y,d.r*sw);g.addColorStop(0,`rgba(255,250,235,${d.a})`);g.addColorStop(1,'rgba(255,250,235,0)');c.fillStyle=g;c.fillRect(x-d.r*sw,y-d.r*sw,d.r*sw*2,d.r*sw*2)}}
+  c.restore();
+  // tittaren i fåtöljen (bakifrån) – i förgrunden, längst ned till vänster
+  {const s=lerp(H0*.5,H0*.34,ez),px=lerp(W0*.2,W0*.06,ez),py=H0+lerp(s*.08,s*.3,ez);c.save();c.globalAlpha=lerp(.97,.88,ez);
+    c.fillStyle='#070504';c.beginPath();rrect(px-s*.55,py-s*.62,s*1.1,s*.9,s*.18);c.fill();       // fåtöljens rygg
+    c.fillStyle='#0b0807';c.beginPath();c.ellipse(px,py-s*.33,s*.42,s*.2,0,Math.PI,0);c.lineTo(px+s*.42,py);c.lineTo(px-s*.42,py);c.fill(); // axlar
+    c.beginPath();c.ellipse(px,py-s*.6,s*.15,s*.18,0,0,6.283);c.fill();                               // huvud
+    c.strokeStyle='rgba(120,140,170,.28)';c.lineWidth=2;c.beginPath();c.ellipse(px,py-s*.6,s*.15,s*.18,0,-2.6,-.5);c.stroke(); // skimmer från TV:n
+    c.restore()}
+}
 // ---------- loop ----------
 const STEP=1/120;let last=performance.now(),acc=0;if(window.__noperf)window.__G={step:n=>{for(let i=0;i<n;i++)step(STEP)},F,game,draw:()=>{if(R3)render3(0)},R:()=>R3};
 function frame(now){
@@ -2395,7 +2496,7 @@ function frame(now){
   if(input.charging)input.charge=Math.min(1,input.charge+rdt/.8);
   if(input.armT>0){input.armT-=rdt;if(input.armT<=0)input.armC=0}
   let ts=1;
-  if(game.cine){const c=game.cine;c.rt+=rdt;const hold=c.hit?Math.min(7,c.hitRt+(R3&&R3.fighters[0].xr?3.9:2.4)):3;
+  if(game.cine){const c=game.cine;c.rt+=rdt;const hold=c.hit?(R3&&R3.fighters[0].xr&&c.xr?(c.done?c.doneRt+.35:1e9):Math.min(7,c.hitRt+2.4)):3;
     if(c.rt<.22)c.kz=ease(c.rt/.22);else if(c.rt<hold)c.kz=1;else{c.kz=1-ease(Math.min(1,(c.rt-hold)/.45));if(c.rt>=hold+.45){game.cine=null;game.cineCool=15;if(c.after)showMsg(c.after,1.1);if(game.state==='count')game.slow=.6}}
     ts=lerp(1,.07,game.cine?game.cine.kz:0)}
   if(game.hitstop>0)game.hitstop-=rdt;
@@ -2407,6 +2508,7 @@ function frame(now){
   let mid=(a+b)/2;if(RING_R-RING_L>260)mid=clamp(mid,RING_L+130,RING_R-130);
   game.cam+=(mid-W/2-game.cam)*Math.min(1,rdt*5);
   if(msgT>0){msgT-=rdt;if(msgT<=0)msgEl.classList.remove('on')}
+  {const zt=game.state==='menu'?.38:1;ROOM.z+=(zt-ROOM.z)*Math.min(1,rdt*2.2);if(Math.abs(zt-ROOM.z)<.002)ROOM.z=zt;roomDraw()}
   if(R3){try{render3(rdt);perf3(rdt)}catch(e){console.error(e);drop3()}}else render(rdt);drawUI(rdt);if(game.state!=='menu')hud(rdt);
 }
 fit();addEventListener('resize',fit);
@@ -2418,6 +2520,6 @@ if(location.protocol.startsWith('http')){const hj=fetch('human.json').then(r=>r.
   Promise.all([import('./three.module.min.js'),hj,hb,import('./cannon-es.js').catch(()=>null),bx,mx]).then(([m,j,b,c,x,y])=>{if(y&&y[0]&&y[1])MIX={j:y[0],b:y[1]};if(j&&b)HUM={j,b};if(c)CANNON=c;if(x&&x[0]&&x[1])B3D={j:x[0],b:x[1]};try{init3D(m)}catch(e){console.error('3D av:',e);R3=null}}).catch(e=>console.warn('Three.js kunde inte laddas',e))}
 })();
 </script>
-<div id="crt"></div><div id="tvframe"></div>
+<canvas id="room"></canvas><div id="crt"></div><div id="tvframe"></div>
 </body>
 </html>
