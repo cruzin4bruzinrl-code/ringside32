@@ -1087,7 +1087,7 @@ function scoreRound(){
 }
 function endMatch(w,how,cards){
   if(w!==F[0]&&game.mode==='match')tvAnger(true);
-  game.state='over';game.overT=3.8;SFX.bell();SFX.cheer(1);game.clinch=null;$('#corner').classList.add('hide');
+  game.state='over';game.overT=3.8;game.winner=w||null;SFX.bell();SFX.cheer(1);game.clinch=null;$('#corner').classList.add('hide');
   const big=how==='KO'?'K.O.!':how==='TKO'||how==='DOC'?'T.K.O.!':how==='DRAW'?'OAVGJORT':'POÄNGSEGER';
   const sub2=how==='DOC'?'LÄKAREN STOPPAR MATCHEN':cards||'';
   showMsg(big,3.6,(w?w.look.name+' VINNER':'')+(sub2?'<br>'+sub2:''));
@@ -1989,6 +1989,62 @@ function mxReplay(o,M){const X=o.mxX;if(!X||X.loop==null||!X.dirW)return;const u
   const rot=(bn,ang,yaw)=>{const b=M.BI[bn],q=new T.Quaternion().setFromAxisAngle(ax,ang);if(yaw)q.multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),yaw));const ids=M.subOf[bn];M.Gq[b].premultiply(q);for(const c of ids)M.Gq[c].premultiply(q)};
   const A=(X.body?.35:.55)*Math.min(1.6,.5+(X.xr?X.xr.g/60:1));
   if(!X.body){rot('Spine2',A*.25*k);rot('Neck',A*.45*k,hook?X.side*.25*k:0);rot('Head',A*.55*k,hook?X.side*.35*k:0)}else{rot('Spine',-A*.4*k);rot('Spine1',-A*.5*k);rot('Neck',A*.3*k)}}
+// ---------- domaren: omfärgad Mixamo-modell med egna, mjuka rörelser ----------
+function refTexture(M,T){const J=MIX.j,cp=(n,C)=>{const[o,l]=J.buf[n];return new C(MIX.b.slice(o,o+l))};const uv=cp('uv',Uint16Array),si=cp('si',Uint8Array),idx=J.i32?cp('idx',Uint32Array):cp('idx',Uint16Array);
+  const img=new Image();img.onload=()=>{const S=1024,cv=document.createElement('canvas');cv.width=cv.height=S;const c=cv.getContext('2d');c.drawImage(img,0,0,S,S);
+    const reg={};for(const n of['Spine','Spine1','Spine2','LeftShoulder','RightShoulder','LeftArm','RightArm','LeftForeArm','RightForeArm'])reg[M.BI[n]]='#e9edf0';
+    for(const n of['Hips','LeftUpLeg','RightUpLeg','LeftLeg','RightLeg'])reg[M.BI[n]]='#1c1c22';for(const n of['LeftFoot','RightFoot','LeftToeBase','RightToeBase'])reg[M.BI[n]]='#0e0e10';
+    for(const n of['LeftHand','RightHand'])reg[M.BI[n]]='#c98b5e';
+    for(let t=0;t<idx.length;t+=3){const a=idx[t],b=idx[t+1],d=idx[t+2],col=reg[si[a*4]];if(!col)continue;c.fillStyle=col;c.strokeStyle=col;c.lineWidth=2.5;c.beginPath();c.moveTo(uv[a*2]/65535*S,uv[a*2+1]/65535*S);c.lineTo(uv[b*2]/65535*S,uv[b*2+1]/65535*S);c.lineTo(uv[d*2]/65535*S,uv[d*2+1]/65535*S);c.closePath();c.fill();c.stroke()}
+    const tx=new T.CanvasTexture(cv);tx.colorSpace=T.SRGBColorSpace;tx.flipY=false;tx.anisotropy=4;M.mat.map=tx;M.mat.needsUpdate=true};img.src='tex/boxer_red.jpg'}
+function refBuild(T,scene){if(!MIX)return null;const M=mixMesh(T,false);refTexture(M,T);const g=new T.Group();g.add(M.mesh);scene.add(g);
+  for(const s of['Left','Right']){M.bones[M.BI[s+'Hand']].scale.setScalar(.42)}           // handskarna krymper till vanliga händer
+  const bt=new T.Mesh(new T.BoxGeometry(3.2,1.4,.8),new T.MeshStandardMaterial({color:0x101014,roughness:.6}));const nb=M.BI.Neck,K=125/1.8;bt.position.copy(new T.Vector3(0,1.45*K,.07*K).sub(M.BWp[nb]).applyQuaternion(M.BWq[nb].clone().invert()));M.bones[nb].add(bt);
+  return{M,g,pos:null,vel:[0,0,0],ph:0,yaw:0,cnt:-1,pump:0,sep:0,raise:0,cntW:0,walk:0,wSide:1}}
+function refPose(){const R=R3,Rf=R&&R.ref;if(!Rf)return;const T=T3,M=Rf.M,tr=game.mode==='train';Rf.g.visible=!tr&&game.state!=='menu';if(!Rf.g.visible)return;
+  const now=game.t,dt=Rf.last==null?0:clamp(now-Rf.last,0,.1);Rf.last=now;const[A,B]=F,st=game.state;
+  const hip=f=>{const o=R.fighters[f.idx];return o&&o.hum?o.hum.P[o.hum.BI.hips]:L2W(f.root.x,GROUND-54,0)};const pa=hip(A),pb=hip(B),mid=vlerp(pa,pb,.5);
+  const side=vnorm(D2W(0,0,1)),along=vnorm(D2W(1,0,0));
+  // var vill domaren stå?
+  let tg=vadd(mid,vmul(side,58)),look=mid,mode='idle';
+  if(game.clinch){tg=vadd(mid,vmul(side,22));mode='sep'}
+  else if(st==='count'&&game.downF){const d=hip(game.downF),o=game.downF.opp,od=hip(o),aw=vnorm(vsub(d,od));tg=vadd(vadd(d,vmul(side,30)),vmul([aw[0],0,aw[2]],-6));look=d;mode='count'}
+  else if(st==='over'&&game.winner){const w=hip(game.winner),l=hip(game.winner.opp),dir=vnorm(vsub(l,w));tg=vadd(vadd(w,vmul([dir[0],0,dir[2]],16)),vmul(side,14));look=vadd(w,vmul(side,120));mode='win'}
+  else if(st==='roundEnd'||st==='kdReset'||st==='intro')tg=vadd(vlerp(pa,pb,.5),vmul(side,40));
+  tg=[tg[0],0,tg[2]];if(!Rf.pos)Rf.pos=tg.slice();
+  // mjuk förflyttning (fjäder) – gångcykeln följer farten
+  const k=10,dmp=2*Math.sqrt(k)*.95;for(let i=0;i<3;i+=2){Rf.vel[i]+=((tg[i]-Rf.pos[i])*k-Rf.vel[i]*dmp)*dt;Rf.pos[i]+=Rf.vel[i]*dt}
+  const sp=Math.hypot(Rf.vel[0],Rf.vel[2]);Rf.walk+=(clamp(sp/28,0,1)-Rf.walk)*Math.min(1,dt*6);Rf.ph+=dt*(4+sp*.12)*(Rf.walk>.05?1:0);
+  const ly=Math.atan2(look[0]-Rf.pos[0],look[2]-Rf.pos[2]);let dy=ly-Rf.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));Rf.yaw+=dy*Math.min(1,dt*5);
+  // lägen blandas mjukt
+  const ease2=(key,on,rate=5)=>{Rf[key]+=((on?1:0)-Rf[key])*Math.min(1,dt*rate);return Rf[key]};
+  const wSep=ease2('sep',mode==='sep',7),wCnt=ease2('cntW',mode==='count',5),wWin=ease2('raise',mode==='win',4);
+  if(mode==='count'){if(game.count!==Rf.cnt){Rf.cnt=game.count;Rf.pump=1}}Rf.pump=Math.max(0,Rf.pump-dt*2.2);
+  // bygg posen i modellrummet
+  for(let i=0;i<M.nb;i++)M.Lq[i].copy(M.restQ[i]);M.Hp.copy(M.restP[M.root]);M.add.clear();
+  const X=new T.Vector3(1,0,0),Z=new T.Vector3(0,0,1),Y=new T.Vector3(0,1,0),q=(ax,a)=>new T.Quaternion().setFromAxisAngle(ax,a);
+  const add=(bn,r)=>{const i=M.BI[bn],e=M.add.get(i);M.add.set(i,e?r.multiply(e):r)};
+  const w=Rf.walk,ph=Rf.ph,sw=Math.sin(ph),br=Math.sin(now*1.6)*.02;
+  M.Hp.y+=-Math.abs(Math.cos(ph))*1.2*w-1.5*wCnt;
+  add('Spine',q(X,.04+br+.25*wCnt));add('Spine1',q(X,.03+.1*wCnt));add('Neck',q(X,.05-.15*wCnt));
+  for(const[s,sg]of[['Left',1],['Right',-1]]){const ls=s==='Left'?sw:-sw;
+    // ben: steg med knäböj
+    add(s+'UpLeg',q(X,-.42*ls*w-.25*wCnt));add(s+'Leg',q(X,Math.max(0,Math.sin(ph+(s==='Left'?0:Math.PI)+1.2))*.65*w+.45*wCnt));add(s+'Foot',q(X,-.1*w));
+    // armar: hänger, pendlar vid gång
+    let armZ=-.78*sg,armX=.22*ls*w,fore=-.25;
+    // skilj åt: armarna framåt mellan boxarna
+    armX=lerp(armX,-1.35,wSep);armZ=lerp(armZ,-.2*sg,wSep);fore=lerp(fore,-.15,wSep);
+    // räkning: höger arm upp och ner i takt med räkningen
+    if(s==='Right'){const up=1-Math.pow(Rf.pump,.5);armX=lerp(armX,-1.2-1.2*up,wCnt);fore=lerp(fore,-.5+.3*up,wCnt)}
+    // vinnaren: armen rakt upp mot taket
+    if((s==='Left')===(Rf.wSide>0)){armZ=lerp(armZ,2.1*sg,wWin);armX=lerp(armX,-.2,wWin);fore=lerp(fore,-.05,wWin)}
+    add(s+'Arm',q(X,armX).multiply(q(Z,armZ)));add(s+'ForeArm',q(X,fore))}
+  mxFK(M);
+  M.yaw.setFromAxisAngle(Y,Rf.yaw);const O=M.v0.set(Rf.pos[0],0,Rf.pos[2]);
+  for(let i=0;i<M.nb;i++){M.Gq[i].copy(M.yaw).multiply(M.Wq[i]);M.Gp[i].copy(M.Wp[i]).applyQuaternion(M.yaw).add(O)}
+  if(mode==='win'&&game.winner){const w2=hip(game.winner),lat=new T.Vector3(1,0,0).applyQuaternion(M.yaw);Rf.wSide=Math.sign((w2[0]-Rf.pos[0])*lat.x+(w2[2]-Rf.pos[2])*lat.z)||1}
+  for(const i of M.ord){const p=M.par[i],b=M.bones[i];if(p<0){b.quaternion.copy(M.Gq[i]);b.position.copy(M.Gp[i])}else b.quaternion.copy(M.q2.copy(M.Gq[p]).invert().multiply(M.Gq[i]))}
+}
 function mixPose(o){
   const M=o.mx,f=o.f,h=o.hum,T=T3;if(!M||!h)return;const S=M.st;
   if(o.mxX){h.mesh.visible=false;M.mesh.visible=true;
@@ -2058,6 +2114,8 @@ function mixPose(o){
             let t2=sh.clone().addScaledVector(dir,R).addScaledVector(up,hk?-1.5+2*Math.sin(pr*Math.PI):6-10*pr);if(pr>.8)t2.lerp(new T.Vector3(wr[0],wr[1],wr[2]),ease((pr-.8)/.2));
             const wh=Math.min(1,pu.t/.08)*.95;if(wh>=w){w=wh;tg=t2}}}}
       if(w>0)mxIK(M,s,tg,w*(1-S.wr),pol)}}
+  if(game.state==='over'&&game.winner===f&&!f.down&&S.wr<.3){S.win=Math.min(1,(S.win||0)+dt*2);const hd=M.Gp[M.BI.Head],lat=new T.Vector3(1,0,0).applyQuaternion(M.yaw),up=new T.Vector3(0,1,0);
+    for(const[s,sg]of[['Left',1],['Right',-1]])mxIK(M,s,hd.clone().addScaledVector(up,26+3*Math.sin(now*6+sg)).addScaledVector(lat,sg*9),S.win*.95,lat.clone().multiplyScalar(sg).addScaledVector(up,-.3).normalize())}else S.win=0;
   (M.hdP||(M.hdP=new T.Vector3())).copy(M.Gp[M.BI.Head]);
   if(M.decals){const iS=f.injSide||{};for(const d of M.decals){let v=inj[d.key]||0;if(d.key==='eye')v=Math.max(v,((f.swell&&f.swell[d.side>0?0:1])||0)/3);const on=v>.05&&(d.side===0||(iS[d.key]||1)===d.side||d.key==='eye');d.m.visible=on;if(on)d.m.scale.copy(d.m.userData.s).multiplyScalar(.7+.5*Math.min(1,v))}}
   // skriv till benen
@@ -2442,6 +2500,7 @@ function init3D(THREE){
       o.brows.forEach(b=>b.visible=false);o.mouth.visible=false;o.eyes.forEach(e=>{e.w.scale.set(1,1,1)});
     }catch(e){console.error('människomodell av:',e);o.hum=null}}
     return o});
+  let REF=null;try{REF=refBuild(T,scene)}catch(e){console.error('domare av:',e)}
   // säck
   const bagG=new G3(11,18,mk({roughness:.42,clearcoat:.6,clearcoatRoughness:.3}),false,true);scene.add(bagG.mesh);
   const chain=new T.Mesh(new T.CylinderGeometry(1,1,1,6),new T.MeshStandardMaterial({color:0x9aa0aa,metalness:.8,roughness:.3}));scene.add(chain);
@@ -2459,10 +2518,12 @@ function init3D(THREE){
         // CRT: bukt, färgfransar, glöd, scanlines, RGB-mask, vinjett, flimmer
         vec2 q=vUv*2.-1.;q+=q*(q.yx*q.yx)*vec2(.06,.085);vec2 uv=q*.5+.5;
         if(uv.x<0.||uv.x>1.||uv.y<0.||uv.y>1.){gl_FragColor=vec4(0.,0.,0.,1.);return;}
+        vec2 pg=res/2.2;uv=mix(uv,(floor(uv*pg)+.5)/pg,.85);  // PS1: grova pixlar
         vec2 p=1./res;float ca=.0018*length(q);vec3 c=vec3(grade(uv+vec2(ca,0.)).r,grade(uv).g,grade(uv-vec2(ca,0.)).b);
         vec3 gl=(grade(uv+vec2(3.*p.x,0.))+grade(uv-vec2(3.*p.x,0.))+grade(uv+vec2(0.,3.*p.y))+grade(uv-vec2(0.,3.*p.y)))*.25;c+=max(gl-.55,0.)*.6;
         c=mix(c,c*vec3(.55,.8,1.15)*.8+vec3(0.,.015,.04),xr);
         float sl=fract(gl_FragCoord.y/3.);c*=mix(1.,.7,smoothstep(.28,.5,abs(sl-.5)));float nz=fract(sin(dot(floor(gl_FragCoord.xy/2.)+floor(time*30.),vec2(12.9898,78.233)))*43758.5453);c+=(nz-.5)*.05;c*=1.+.05*smoothstep(.0,.06,.06-abs(fract(uv.y*.7-time*.12)-.5));
+        c=floor(c*31.+(b4(floor(gl_FragCoord.xy/2.2))-.6)*.9)/31.;  // 15-bitars färg med dithering som på PS1
         float lu=dot(c,vec3(.3,.59,.11));c=mix(c,vec3(lu*1.04,lu,lu*.9)*1.08,bw*(1.-xr*.6));
         float m=mod(gl_FragCoord.x,3.);vec3 mask=m<1.?vec3(1.,.74,.74):m<2.?vec3(.74,1.,.74):vec3(.74,.74,1.);c*=mix(vec3(1.),mask,.32)*1.16;
         float v=16.*uv.x*uv.y*(1.-uv.x)*(1.-uv.y);c*=pow(v,.22);c*=.985+.015*sin(time*62.);
@@ -2471,7 +2532,7 @@ function init3D(THREE){
   // spelets koordinater är vänsterhänta: spegla hela världen (och kameran) så att bilden matchar 2D-lagret
   const root=new T.Group();root.scale.x=-1;while(scene.children.length)root.add(scene.children[0]);scene.add(root);
   scene.traverse(o=>{o.frustumCulled=false});
-  R3={T,renderer,scene,cam,gl,fighters,bagG,chain,rt,post,pScene,pCam,w:0,h:0,key,scale:1.35,q:0,world:RW,pt:null};
+  R3={T,renderer,scene,cam,gl,fighters,bagG,chain,rt,post,pScene,pCam,w:0,h:0,key,scale:1.35,q:0,world:RW,pt:null,ref:REF};
   XSRC=gl;fit();
   // förkompilera röntgenmaterialen så att första dödliga slaget inte hackar
   try{for(const o of fighters)if(o.xr){o.xr.list.forEach(m=>m.visible=true);o.hum.mesh.material=o.xr.skin;o.xr.shock.visible=true}
@@ -2571,6 +2632,7 @@ function draw3(){
   if(R.world)ragStep(R,tr);
   for(const o of R.fighters)if(o.hum&&(o===R.fighters[0]||!tr)){if(o.rag&&R.world&&o.rag.mode!=='kin')humanFromRag(o);humanDress(o)}
   for(const o of R.fighters)if(o.mx&&(o===R.fighters[0]||!tr))mixPose(o);
+  refPose();
   // svett: huden blir blankare ju tröttare och mer slagen boxaren är
   for(const o of R.fighters){const f=o.f,sw=clamp((1-f.stam/100)*.6+(game.round-1)*.15+(100-f.hp)/250,0,1);for(const m of new Set([o.skin,o.torsoM])){if(!m.isMeshPhysicalMaterial)continue;m.clearcoat=.12+.85*sw;m.clearcoatRoughness=.42-.3*sw;m.roughness=.52-.18*sw}}
   let xa=0;for(const o of R.fighters)xa=Math.max(xa,o.mxX?xrayMx(o):xray3(o));R.post.uniforms.xr.value=xa;
@@ -2702,7 +2764,7 @@ function pizza(c,x,y,s,rot,sq,a){c.save();c.globalAlpha=a;c.translate(x,y);c.rot
   c.fillStyle='#b8261a';for(const[px,py]of[[0,-.25],[-.15,-.05],[.13,.0],[0,.2],[.18,-.3],[-.2,-.32]]){c.beginPath();c.arc(px*s,py*s,s*.065,0,6.283);c.fill()}
   c.strokeStyle='rgba(255,240,180,.6)';c.lineWidth=1.5;c.beginPath();c.moveTo(-s*.1,s*.3);c.quadraticCurveTo(-s*.12,s*.5,-s*.08,s*.62);c.stroke();c.restore()}
 // ---------- loop ----------
-const STEP=1/120;let last=performance.now(),acc=0;if(window.__noperf)window.__G={step:n=>{for(let i=0;i<n;i++)step(STEP)},F,game,AR,CAM,tv:l=>tvAnger(l),draw:()=>{if(R3)render3(0)},R:()=>R3};
+const STEP=1/120;let last=performance.now(),acc=0;if(window.__noperf)window.__G={step:n=>{for(let i=0;i<n;i++)step(STEP)},F,game,AR,CAM,tv:l=>tvAnger(l),kd:f=>knockdown(f),end:w=>endMatch(w,'KO'),draw:()=>{if(R3)render3(0)},R:()=>R3};
 function frame(now){
   requestAnimationFrame(frame);
   const rdt=Math.min(.05,(now-last)/1000);last=now;
