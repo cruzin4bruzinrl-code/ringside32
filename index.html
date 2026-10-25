@@ -128,7 +128,7 @@ button{font-family:inherit;cursor:pointer}
   <div class="card" id="mainCard">
     <div>
       <h1>RINGSIDE<span>32</span></h1>
-      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V36</span></p>
+      <p class="sub">3D-BOXNING I 32-BITARSSTIL · SOFTBODY · RAGDOLLS · <span id="ver">V37</span></p>
       <div id="res"></div>
       <div class="diff"><button data-d="latt">LÄTT</button><button data-d="normal" class="on">NORMAL</button><button data-d="svar">SVÅR</button></div>
       <div class="diff" id="bwRow"><button data-bw="0" class="on">FÄRG-TV</button><button data-bw="1">SVARTVIT 50-TALS-TV</button></div>
@@ -455,7 +455,7 @@ class Fighter{
   }
   reset(x){
     Object.assign(this,{hp:100,lag:100,body:100,stam:100,stun:0,toneDip:0,headDip:0,tone:1,punch:null,buf:null,down:false,rising:0,kd:0,kdR:0,score:0,duckA:0,swayA:0,walkPh:0,mash:0,blocking:false,trail:[],riseAt:99,sideT:0,
-      guard:100,guardBreakT:0,blockStart:-9,wasBlock:false,counterT:0,angleT:0,rd:0,inQ:[],zKick:0,stance:1,swell:[0,0],cut:0,cutSide:1,liverT:0,liverFold:false,rip:[],critT:0,slipA:0,dodge:null,dodgeCD:0,feintT:0,clinches:0,penR:0,corner:null,focus:1});
+      guard:100,inj:{},injSide:{},pendInj:null,guardBreakT:0,blockStart:-9,wasBlock:false,counterT:0,angleT:0,rd:0,inQ:[],zKick:0,stance:1,swell:[0,0],cut:0,cutSide:1,liverT:0,liverFold:false,rip:[],critT:0,slipA:0,dodge:null,dodgeCD:0,feintT:0,clinches:0,penR:0,corner:null,focus:1});
     this.face=this.idx?-1:1;this.root.x=x;this.root.vx=0;this.ai.q=[];this.ai.t=.5;
     this.computeTargets(0,0);for(const q of this.p){q.x=q.tx;q.y=q.ty;q.vx=q.vy=0}
     if(!this.bones)this.makeBones();
@@ -609,9 +609,9 @@ class Fighter{
     if(this.root.x>RING_R-22){this.root.x=RING_R-22;if(this.root.vx>0)this.root.vx*=-.4}
     this.walkPh+=this.root.vx*dt*.2;
     this.sideT=Math.max(0,this.sideT-dt);
-    if(!this.punch)this.stam=Math.min(60+40*this.body/100,this.stam+dt*(this.blocking?5:12)*(this.stun>.5?.5:1)*this.sKond);
+    if(!this.punch)this.stam=Math.min(60+40*this.body/100,this.stam+dt*(this.blocking?5:12)*(this.stun>.5?.5:1)*this.sKond*(1-.3*((this.inj&&this.inj.ribs)||0)-.35*((this.inj&&this.inj.solar)||0)));
     this.stam=Math.max(0,this.stam-(this.duckA+this.swayA+Math.abs(this.slipA))*dt*3.2);
-    this.stun=Math.max(0,this.stun-dt*.5);this.toneDip=Math.max(0,this.toneDip-dt*2);this.headDip=Math.max(0,this.headDip-dt*3.5);
+    this.stun=Math.max(0,this.stun-dt*.5*(1-.45*((this.inj&&this.inj.brain)||0)));if(this.inj&&this.inj.nose&&!this.down&&Math.random()<dt*.5*this.inj.nose)blood(this.p[0].x+this.face*8,this.p[0].y+4,this.zs[0],1,this.face*.3);this.toneDip=Math.max(0,this.toneDip-dt*2);this.headDip=Math.max(0,this.headDip-dt*3.5);
     if(this.rising>0){this.rising+=dt/1.1;if(this.rising>=1)this.rising=0}
     const base=this.rising>0?.02+.98*ease(this.rising):1-Math.min(1,this.stun)*.45;
     this.tone=this.down?.02:Math.max(.1,base-this.toneDip);
@@ -963,6 +963,8 @@ function land(a,b,pu,body,g){
   const Z=ZM[zone];
   let dmg=pu.dmg*(.45+.55*a.stam/100)*(a.isAI?D.dmg:1);
   dmg*=1+clamp(a.root.vx*a.face/78,-1,1)*.25;
+  {const J=b.inj||{};if(!body){if(zone==='KAKE'&&J.jaw)dmg*=1+.7*J.jaw;if((zone==='TINNING'||zone==='HUVUD')&&J.skull)dmg*=1+.5*J.skull;if(zone==='NASA'&&J.nose)dmg*=1+.35*J.nose}
+    else{if((zone==='REVBEN'||zone==='MAGE')&&J.ribs)dmg*=1+.6*J.ribs;if(zone==='LEVER'&&J.liver)dmg*=1+.6*J.liver;if(zone==='SOLAR'&&J.solar)dmg*=1+.4*J.solar}}
   const angle=a.angleT>0,counter=!!(b.punch&&b.punch.phase!=='rec');
   if(counter)dmg*=1.4;if(angle)dmg*=1.25;
   const blocked=b.blocking&&Math.random()<coverOf(a,b,pu);
@@ -995,7 +997,7 @@ function land(a,b,pu,body,g){
   b.rip.push({part,off,age:0,amp:crit?3.4:1+dmg*.07,crit,w:[0,0,0]});if(b.rip.length>4)b.rip.shift();
   if(crit)b.critT=.5;
   if(!body){
-    b.mxHit={body:false,dmg,sd,hook:pu.type==='hook'||pu.type==='over',crit};b.hp-=dmg;b.stun+=dmg*.034*(counter?1.35:1)*Z.s;b.toneDip=Math.min(.85,b.toneDip+dmg*.04*Z.s);b.headDip=Math.min(.95,b.headDip+dmg*.08);
+    b.mxHit={body:false,dmg,sd,hook:pu.type==='hook'||pu.type==='over',crit};b.hp-=dmg;b.stun+=dmg*.034*(counter?1.35:1)*Z.s*(1+.6*((b.inj&&b.inj.brain)||0)+(zone==='KAKE'&&b.inj&&b.inj.jaw?.5*b.inj.jaw:0));if(b.inj&&b.inj.nose)blood(P[0].x+b.face*9,P[0].y+3,b.zs[0],3+(dmg|0),a.face);b.toneDip=Math.min(.85,b.toneDip+dmg*.04*Z.s);b.headDip=Math.min(.95,b.headDip+dmg*.08);
     b.zKick=clamp(b.zKick-sd*dmg*(pu.type==='hook'?.9:.2),-12,12);b.hyV=(b.hyV||0)-sd*dmg*(pu.type==='hook'||pu.type==='over'?.55:.15)*(crit?1.5:1);
     b.swell[sd>0?1:0]=Math.min(3,b.swell[sd>0?1:0]+dmg*.05);
     if(dmg>=8&&(zone==='TINNING'||zone==='NASA')&&Math.random()<.3&&b.cut<5){b.cut++;b.cutSide=sd;pop(b.cut>=3?'DJUP CUT!':'CUT!','#ff4a4a',.18)}
@@ -1007,7 +1009,7 @@ function land(a,b,pu,body,g){
   }else{
     let bd=dmg*(zone==='REVBEN'?1.3:1);b.mxHit={body:true,dmg,sd,crit};
     b.body-=bd;b.hp-=dmg*.3;b.stam=Math.max(0,b.stam-dmg*(zone==='SOLAR'?3:1.3));b.stun+=dmg*.025+(zone==='SOLAR'?.25:0);b.toneDip=Math.min(.7,b.toneDip+dmg*.03);
-    if(zone==='LEVER'){b.liverT=cine?.35:.6;b.liverFold=!!cine||(dmg>=8.5&&b.body<55)||Math.random()<(60-b.body)/120;if(!b.liverFold){b.stam=Math.max(0,b.stam-dmg*2);b.stun+=.4}}
+    if(zone==='LEVER'){b.liverT=cine?.35:.6;b.liverFold=!!cine||(dmg>=8.5&&b.body<55)||Math.random()<(60-b.body)/120+((b.inj&&b.inj.liver)||0)*.35;if(!b.liverFold){b.stam=Math.max(0,b.stam-dmg*2);b.stun+=.4}}
     const imp=dmg*30*(crit?1.5:1);P[2].vx+=dx*imp;P[3].vx+=dx*imp*.6;P[0].vx+=dx*imp*.5;P[2].vy+=dy*imp*.4;
     for(const j of b.jig){j.vx+=dx*imp*2.2;j.vy+=dy*imp*1.5}
     sweat(g.x,g.y,dx,dy,4,null,b.zs[2]);(b.rimp=b.rimp||[]).push({part:zone==='LEVER'||zone==='SOLAR'||zone==='MAGE'?'abdomen':'chest',d:vnorm(D2W(dx,dy*.3,0)),m:dmg*95*(crit?1.4:1)});
@@ -1056,11 +1058,19 @@ function knockdown(f){
   {const L=f.lastHit;if(!game.cine&&R3&&R3.fighters[0].xr&&L&&game.t-L.t<1.5){const sx=Math.sign(L.a.root.x-f.root.x)||1,rp=f.rip[f.rip.length-1]||{w:L2W(f.p[L.body?2:0].x,f.p[L.body?2:0].y,f.zs[L.body?2:0])};
     if(!rp.w)rp.w=L2W(f.p[0].x,f.p[0].y,f.zs[0]);
     game.cine={f,part:L.body?'body':'head',off:[sx*2,0,0],yaw:-sx*.55,dist:L.body?150:138,rt:.3,kz:1,hit:true,hitRt:0,rip:rp,xr:xrayPhysics(L.a,f,L.pu,L.zone,L.dmg,L.body),label:ZM[L.zone]&&ZM[L.zone].lab||'KNOCKOUT',zone:L.zone,retro:true};game.slow=0}}
+  {const L=f.lastHit,xr=game.cine&&game.cine.f===f&&game.cine.xr||(L&&game.t-L.t<1.5?xrayPhysics(L.a,f,L.pu,L.zone,L.dmg,L.body):null);if(xr)f.pendInj={inj:injFrom(xr),sd:L?(sideZ(L.a,L.pu)||1):1}}
   if(f.kdR>=3){endMatch(f.opp,'TKO');return}
   game.downF=f;game.state='count';game.count=0;game.countT=-.6;if(game.cine)game.cine.after='NERE!';else showMsg('NERE!',1.1);
   if(f.isAI){const ch=(f.hp<=0?.55:.9)-(f.kd-1)*.22+(game.diffKey==='latt'?-.15:game.diffKey==='svar'?.12:0);f.riseAt=Math.random()<ch?Math.floor(rand(3,9.5)):99}
 }
-function rise(f){f.down=false;f.rising=.001;f.root.x=clamp(f.p[3].x,RING_L+22,RING_R-22);f.root.vx=0;f.hp=Math.max(f.hp,42-f.kd*7);f.stun=.6;f.stam=Math.max(f.stam,50);showMsg('UPPE!',.8)}
+const INJN={jaw:'KÄKBROTT',skull:'SPRICKA I SKALLEN',nose:'BRUTEN NÄSA',brain:'HJÄRNSKAKNING',ribs:'SPRUCKNA REVBEN',liver:'LEVERSKADA',solar:'MELLANGÄRDSKRAMP'};
+const INJD={jaw:'käken tål mycket mindre',skull:'huvudslag gör mer skada',nose:'näsan blöder vid träff',brain:'återhämtar sig långsammare, svajig',ribs:'kroppsslag gör mer ont, flåsar',liver:'leverslag kan fälla direkt',solar:'sämre andning – orken tar slut'};
+function injFrom(xr){const c=x=>clamp(x,0,1),I={};if(!xr)return I;
+  if(!xr.body){I.brain=c(xr.brain);if(xr.zone==='KAKE')I.jaw=c(xr.frac);else if(xr.zone==='NASA')I.nose=Math.max(.35,c(xr.frac));else if(xr.frac>0)I.skull=c(xr.frac)}
+  else if(xr.zone==='LEVER')I.liver=Math.max(.3,c(xr.organ||xr.F/4500));else if(xr.zone==='SOLAR')I.solar=Math.max(.3,c(xr.organ||0));else I.ribs=c(xr.frac||0);
+  for(const k in I)if(I[k]<.05)delete I[k];return I}
+function rise(f){f.down=false;if(f.pendInj){const P=f.pendInj,nm=[];f.inj=f.inj||{};f.injSide=f.injSide||{};for(const k in P.inj){if(!(f.inj[k]>=P.inj[k]))nm.push(k);f.inj[k]=Math.max(f.inj[k]||0,P.inj[k]);f.injSide[k]=P.sd}f.pendInj=null;
+    if(nm.length)setTimeout(()=>showMsg('SKADOR',2.6,nm.map(k=>INJN[k]+' – '+INJD[k]).join('<br>')),900)}f.rising=.001;f.root.x=clamp(f.p[3].x,RING_L+22,RING_R-22);f.root.vx=0;f.hp=Math.max(f.hp,42-f.kd*7);f.stun=.6;f.stam=Math.max(f.stam,50);showMsg('UPPE!',.8)}
 function scoreRound(){
   const[A,B]=F,rc=[];
   for(const c of game.cards){const sa=A.rd*rand(.8,1.2),sb=B.rd*rand(.8,1.2);let pa=10,pb=10;if(Math.abs(sa-sb)>=2.5){if(sa>sb)pb=9;else pa=9}pa-=A.kdR+A.penR;pb-=B.kdR+B.penR;c[0]+=pa;c[1]+=pb;rc.push(pa+'-'+pb)}
@@ -1809,11 +1819,18 @@ function mixMesh(T,blue){
   const sub=r=>{const out=[];const rec=i=>{par.forEach((p,c)=>{if(p===i){out.push(c);rec(c)}})};rec(r);return out};
   const V=()=>new T.Vector3(),Qn=()=>new T.Quaternion();
   const M={mesh,bones,BI,par,ord,nb,BWq,BWp,restQ,restP,tb:J.tb,clips,mat,root:ord[0],
-    hsub:{Left:sub(BI.LeftHand),Right:sub(BI.RightHand)},
+    hsub:{Left:sub(BI.LeftHand),Right:sub(BI.RightHand)},fsub:{Left:sub(BI.LeftFoot),Right:sub(BI.RightFoot)},
     Lq:restQ.map(q=>q.clone()),Hp:V(),Wq:restQ.map(Qn),Wp:restP.map(V),Gq:restQ.map(Qn),Gp:restP.map(V),Rq:restQ.map(Qn),
     q0:Qn(),q1:Qn(),q2:Qn(),v0:V(),v1:V(),v2:V(),v3:V(),yaw:Qn(),add:new Map(),
     st:{pu:null,cl:null,tc:0,w:0,fade:0,hit:null,hitT:9,hitW:0,hn:-1,snap:[0,0,0,0],wr:0,wb:0,wc:0,last:null}};
   M.dodge=mixDodgeFrames(M);
+  {const KM=125/1.8,dm=new T.SphereGeometry(1,12,9);M.decals=[];
+    const dec=(bn,p,sz,col,key,side,op=.62)=>{const b=M.BI[bn],lp=new T.Vector3(p[0]*KM,p[1]*KM,p[2]*KM).sub(M.BWp[b]).applyQuaternion(M.BWq[b].clone().invert());
+      const m=new T.Mesh(dm,new T.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:.35,roughness:.6,transparent:true,opacity:op,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2}));m.position.copy(lp);m.scale.set(sz[0]*KM,sz[1]*KM,sz[2]*KM);m.userData.s=m.scale.clone();m.visible=false;m.renderOrder=3;bones[b].add(m);M.decals.push({m,key,side})};
+    for(const sd of[1,-1]){dec('Head',[sd*.056,1.553,.072],[.032,.026,.032],0x9a2a70,'jaw',sd,.8);dec('Head',[sd*.074,1.68,.036],[.024,.028,.022],0xb01c2a,'skull',sd,.8);dec('Head',[sd*.036,1.655,.097],[.022,.015,.013],0x7a2a78,'eye',sd,.8);
+      dec('Spine2',[sd*.13,1.2,.07],[.05,.06,.04],0x8a2a60,'ribs',sd,.75)}
+    dec('Head',[0,1.626,.11],[.015,.02,.015],0x8a1a1a,'nose',0,.75);dec('Head',[0,1.592,.105],[.009,.02,.005],0xa01010,'nose',0,.85);
+    dec('Spine1',[-.1,1.08,.1],[.05,.05,.03],0x8a2a60,'liver',0,.75);dec('Spine2',[0,1.2,.12],[.04,.04,.03],0x8a2a60,'solar',0,.75)}
   return M;
 }
 // samplar ett klipp och blandar in det (w=1 ersätter)
@@ -1837,7 +1854,7 @@ function mixAlign(M,h){const T=T3,A={};for(const g in MXMAP){const mn=MXMAP[g],m
   const r=vsub(h.bt[gi],h.bh[gi]),dg=new T.Vector3(r[0],r[1],r[2]).normalize();A[m]={gi,q:new T.Quaternion().setFromUnitVectors(dm,dg).multiply(M.BWq[m])}}
   M.align=A;M.hipOff=M.BWp[M.BI.Hips].clone().sub(new T.Vector3(...h.bh[h.BI.hips]))}
 // tvåledad IK på en arm i gruppens rum
-function mxIK(M,s,tg,w,pol){if(w<=.001)return;const a=M.BI[s+'Arm'],e=M.BI[s+'ForeArm'],hd=M.BI[s+'Hand'],G=M.Gp,Q=M.Gq,T=T3;
+function mxIK(M,s,tg,w,pol,leg){if(w<=.001)return;const a=M.BI[s+(leg?'UpLeg':'Arm')],e=M.BI[s+(leg?'Leg':'ForeArm')],hd=M.BI[s+(leg?'Foot':'Hand')],G=M.Gp,Q=M.Gq,T=T3;
   const A=G[a],E=G[e],W=G[hd],L1=A.distanceTo(E),L2=E.distanceTo(W);const tgt=M.v1.copy(W).lerp(tg,w);
   const d=M.v2.copy(tgt).sub(A);let dl=d.length();if(dl<1e-4)return;dl=clamp(dl,Math.abs(L1-L2)+.5,(L1+L2)*.999);const u=d.normalize();
   const pv=M.v3.copy(E).sub(A);if(pol)pv.lerp(pol.clone().multiplyScalar(pv.length()+1e-3),Math.min(1,w*1.2));pv.addScaledVector(u,-pv.dot(u));if(pv.lengthSq()<1e-6)pv.set(0,-1,0).addScaledVector(u,-u.y);pv.normalize();
@@ -1845,7 +1862,7 @@ function mxIK(M,s,tg,w,pol){if(w<=.001)return;const a=M.BI[s+'Arm'],e=M.BI[s+'Fo
   const E2=new T.Vector3().copy(A).addScaledVector(u,ca*L1).addScaledVector(pv,sa*L1),W2=new T.Vector3().copy(A).addScaledVector(u,dl);
   const r1=new T.Quaternion().setFromUnitVectors(E.clone().sub(A).normalize(),E2.clone().sub(A).normalize());
   const fw=W.clone().sub(E).applyQuaternion(r1).normalize(),r2=new T.Quaternion().setFromUnitVectors(fw,W2.clone().sub(E2).normalize()),r21=r2.clone().multiply(r1);
-  Q[a].premultiply(r1);Q[e].premultiply(r21);Q[hd].premultiply(r21);for(const c of M.hsub[s])Q[c].premultiply(r21);E.copy(E2);W.copy(W2)}
+  Q[a].premultiply(r1);Q[e].premultiply(r21);Q[hd].premultiply(r21);for(const c of(leg?M.fsub:M.hsub)[s])Q[c].premultiply(r21);E.copy(E2);W.copy(W2)}
 function mixPose(o){
   const M=o.mx,f=o.f,h=o.hum,T=T3;if(!M||!h)return;const S=M.st;
   const xo=!!(o.xr&&o.xr.on);M.mesh.visible=!xo;h.mesh.visible=xo;if(xo)return;
@@ -1857,7 +1874,7 @@ function mixPose(o){
   mxSample(M,'Boxing'+mr,now*.78+f.seed,true,1);
   // 2) undanmanövrar ur Dodging-klippet
   if(M.dodge){const D=M.dodge,cn='Dodging_1_1'+mr;
-    mxSample(M,cn,D.duck,false,clamp(f.duckA,0,1)*.95);mxSample(M,cn,D.sway,false,clamp(f.swayA,0,1)*.85);
+    mxSample(M,cn,D.sway,false,clamp(f.swayA,0,1)*.85);
     const sl=f.slipA||0;if(Math.abs(sl)>.02){const hs=vsub(h.P[h.BI.head],h.P[h.BI.chest]),lat=D2W(0,0,1),left=(vdot(hs,lat)>0)===(mr==='');mxSample(M,cn,left?D.slipL:D.slipR,false,Math.min(1,Math.abs(sl))*.9)}}
   // 3) slag: rätt klipp, tiden synkad mot spelets träffögonblick
   const pu=f.punch;
@@ -1873,8 +1890,13 @@ function mixPose(o){
   if(S.hitW>0){S.hitT+=dt*1.15;S.hitW-=dt*1.4;mxSample(M,S.hcl,S.hitT,false,Math.min(1,S.hitW*1.6))}
   // huvudknyck (fjäder): pitch bakåt + vridning
   {const sp=S.snap,K=160,D=2*Math.sqrt(K)*.45;sp[1]+=(-K*sp[0]-D*sp[1])*dt;sp[0]+=sp[1]*dt;sp[3]+=(-K*sp[2]-D*sp[3])*dt;sp[2]+=sp[3]*dt;
-    M.add.clear();const amp=sp[0],yw=sp[2]+(f.stun>.15?Math.sin(now*4.1)*f.stun*.12:0);
+    M.add.clear();const amp=sp[0]+((f.inj&&f.inj.brain)||0)*Math.sin(now*1.9+f.seed)*.05,yw=sp[2]+(f.stun>.15?Math.sin(now*4.1)*f.stun*.12:0)+((f.inj&&f.inj.brain)||0)*Math.sin(now*1.3)*.08;
     if(Math.abs(amp)+Math.abs(yw)>.002){const ax=new T.Vector3(1,0,0),up=new T.Vector3(0,1,0);for(const[bn,k]of[['Spine2',.3],['Neck',.45],['Head',.6]]){M.add.set(M.BI[bn],new T.Quaternion().setFromAxisAngle(ax,amp*k).multiply(new T.Quaternion().setFromAxisAngle(up,yw*k)))}}}
+  // boxarhuk: böj i midjan och lite i knäna, huvudet framåt-ned men blicken kvar på motståndaren (fötterna står kvar)
+  const inj=f.inj||{},dk=clamp(f.duckA,0,1.05)+(inj.ribs||0)*.12,drop=7.5*clamp(f.duckA,0,1.05);let ftM=null;
+  if(dk>.01){mxFK(M);ftM=[M.Wp[M.BI.LeftFoot].clone(),M.Wp[M.BI.RightFoot].clone()];const ax=new T.Vector3(1,0,0),wv=Math.sin(now*3.2+f.seed)*.06*clamp(f.duckA,0,1);
+    for(const[bn,k]of[['Hips',.16],['Spine',.24],['Spine1',.2],['Spine2',.12],['Neck',-.28],['Head',-.22]]){const i=M.BI[bn],q=new T.Quaternion().setFromAxisAngle(ax,k*dk);if(bn==='Spine1')q.multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(0,0,1),wv));const e=M.add.get(i);M.add.set(i,e?q.multiply(e):q)}
+    M.Hp.y-=drop}
   mxFK(M);
   // till gruppens rum: står där spelets bäcken står, vänd mot motståndaren
   const fw=D2W(f.face,0,0),Pel=h.P[h.BI.hips];M.yaw.setFromAxisAngle(new T.Vector3(0,1,0),Math.atan2(fw[0],fw[2]));
@@ -1884,6 +1906,7 @@ function mixPose(o){
   {const op=R3&&R3.fighters.find(q=>q!==o&&q.mx&&q.mx.mesh.visible&&q.grp.visible),hd=M.Gp[M.BI.Head];let push=0;
     if(op&&op.mx.hdP){const dx=hd.x-op.mx.hdP.x,dz=hd.z-op.mx.hdP.z,dl=Math.hypot(dx,dz);push=Math.max(0,24-dl)}
     S.sep=(S.sep||0)+(push*.6-(S.sep||0))*Math.min(1,dt*20);if(S.sep>.01){const bx=-fw[0]*S.sep,bz=-fw[2]*S.sep;for(const v of M.Gp){v.x+=bx;v.z+=bz}}}
+  if(ftM&&S.wr<.9){const fv=new T.Vector3(fw[0],0,fw[2]).normalize();['Left','Right'].forEach((sd,k)=>{const tg=ftM[k].clone().applyQuaternion(M.yaw).add(O);if(S.sep>.01)tg.addScaledVector(fv,-S.sep);mxIK(M,sd,tg,1,fv,true)})}
   // 5) nere/på väg upp: följ ragdollen
   const wrT=f.down?1:f.rising>0?1-ease(Math.min(1,f.rising*1.25)):0;S.wr+=(wrT-S.wr)*Math.min(1,dt*(wrT>S.wr?14:6));
   if(S.wr>.002){const A=M.align,R=M.Rq;for(const i of M.ord){const a=A[i],p=M.par[i];if(a)R[i].copy(h.Q[a.gi]).multiply(a.q);else R[i].copy(p<0?M.Gq[i]:R[p]).multiply(p<0?M.q2.identity():M.restQ[i])}
@@ -1898,11 +1921,15 @@ function mixPose(o){
       let pol=null;
       if(pu&&S.hand===hand&&S.u!=null){const u=S.u,wi=(u<0?clamp(1+u/.12,0,1):clamp(1-u/.2,0,1))*.85;if(wi>w){w=wi;tg=new T.Vector3(wr[0],wr[1],wr[2])}
         // krok/overhand: armen svingar ut i en bred båge med armbågen uppe innan den slår in
-        if((pu.type==='hook'||pu.type==='over')&&pu.phase!=='rec'){const tH=pu.w+pu.st/1.6,pr=clamp(pu.t/tH,0,1),sh=M.Gp[M.BI[s+'Arm']],lat=new T.Vector3(s==='Left'?1:-1,0,0).applyQuaternion(M.yaw),fv=new T.Vector3(fw[0],0,fw[2]).normalize(),
-            wd=sh.clone().addScaledVector(lat,pu.type==='hook'?40:30).addScaledVector(fv,pu.type==='hook'?12:4).add(new T.Vector3(0,pu.type==='hook'?2:14,0)),cw=M.Gp[M.BI[s+'Hand']].clone(),en=new T.Vector3(wr[0],wr[1],wr[2]);
-          const t2=pr<.55?cw.lerp(wd,ease(pr/.55)):wd.clone().lerp(en,ease((pr-.55)/.45));const wh=Math.min(1,pu.t/.06)*.92;if(wh>=w){w=wh;tg=t2}pol=lat.clone().add(new T.Vector3(0,.7,0)).normalize()}}
+        if(pu.type==='hook'||pu.type==='over'){const lat=new T.Vector3(s==='Left'?1:-1,0,0).applyQuaternion(M.yaw),fv=new T.Vector3(fw[0],0,fw[2]).normalize(),up=new T.Vector3(0,1,0),hk=pu.type==='hook';
+          pol=up.clone().multiplyScalar(hk?.8:1).addScaledVector(lat,hk?.55:.3).addScaledVector(fv,-.25).normalize();
+          if(pu.phase!=='rec'){const tH=pu.w+pu.st/1.6,pr=clamp(pu.t/tH,0,1),ai=M.BI[s+'Arm'],sh=M.Gp[ai],L=sh.distanceTo(M.Gp[M.BI[s+'ForeArm']])+M.Gp[M.BI[s+'ForeArm']].distanceTo(M.Gp[M.BI[s+'Hand']]),R=L*(hk?.8:.86);
+            const ph=lerp(hk?1.3:.9,hk?-.12:-.05,eio(Math.min(1,pr/.85))),dir=fv.clone().multiplyScalar(Math.cos(ph)).addScaledVector(lat,Math.sin(ph));
+            let t2=sh.clone().addScaledVector(dir,R).addScaledVector(up,hk?-1.5+2*Math.sin(pr*Math.PI):6-10*pr);if(pr>.8)t2.lerp(new T.Vector3(wr[0],wr[1],wr[2]),ease((pr-.8)/.2));
+            const wh=Math.min(1,pu.t/.08)*.95;if(wh>=w){w=wh;tg=t2}}}}
       if(w>0)mxIK(M,s,tg,w*(1-S.wr),pol)}}
   (M.hdP||(M.hdP=new T.Vector3())).copy(M.Gp[M.BI.Head]);
+  if(M.decals){const iS=f.injSide||{};for(const d of M.decals){let v=inj[d.key]||0;if(d.key==='eye')v=Math.max(v,((f.swell&&f.swell[d.side>0?0:1])||0)/3);const on=v>.05&&(d.side===0||(iS[d.key]||1)===d.side||d.key==='eye');d.m.visible=on;if(on)d.m.scale.copy(d.m.userData.s).multiplyScalar(.7+.5*Math.min(1,v))}}
   // skriv till benen
   for(const i of M.ord){const p=M.par[i],b=M.bones[i];if(p<0){b.quaternion.copy(M.Gq[i]);b.position.copy(M.Gp[i])}else b.quaternion.copy(M.q2.copy(M.Gq[p]).invert().multiply(M.Gq[i]))}
 }
@@ -2432,6 +2459,7 @@ function render3(rdt){
   SX=Math.round((Math.random()-.5)*sh);SY=Math.round((Math.random()-.5)*sh);
   const rocked=!tr&&game.state==='fight'&&f0.stun>.6&&!game.cine;
   if(rocked){SX+=Math.round(Math.sin(game.t*6.3)*(f0.stun-.5)*3);SY+=Math.round(Math.cos(game.t*4.7)*(f0.stun-.5)*2)}
+  {const br=(f0.inj&&f0.inj.brain)||0;if(br>0&&!tr&&!game.cine){SX+=Math.round(Math.sin(game.t*1.6)*br*2.5);SY+=Math.round(Math.sin(game.t*1.1)*br*1.5)}}
   setupCam();draw3();
   ctx.setTransform(RSc,0,0,RSc,0,0);ctx.clearRect(0,0,W,H);ctx.lineCap='round';
   for(const f of tr?[f0]:F){const t=f.trail;if(t.length<2)continue;ctx.strokeStyle=f.punch&&f.punch.hay?'rgba(255,160,60,.55)':'rgba(255,255,255,.35)';ctx.lineWidth=3;ctx.beginPath();let st=false;for(const q of t){const s2=P3(q[0],q[1],q[2]);if(!s2)continue;st?ctx.lineTo(s2[0],s2[1]):ctx.moveTo(s2[0],s2[1]);st=true}ctx.stroke()}
@@ -2488,7 +2516,7 @@ function roomDraw(){const cv=ROOM.cv||(ROOM.cv=document.getElementById('room'));
     c.restore()}
 }
 // ---------- loop ----------
-const STEP=1/120;let last=performance.now(),acc=0;if(window.__noperf)window.__G={step:n=>{for(let i=0;i<n;i++)step(STEP)},F,game,draw:()=>{if(R3)render3(0)},R:()=>R3};
+const STEP=1/120;let last=performance.now(),acc=0;if(window.__noperf)window.__G={step:n=>{for(let i=0;i<n;i++)step(STEP)},F,game,AR,CAM,draw:()=>{if(R3)render3(0)},R:()=>R3};
 function frame(now){
   requestAnimationFrame(frame);
   const rdt=Math.min(.05,(now-last)/1000);last=now;

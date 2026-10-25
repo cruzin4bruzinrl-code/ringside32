@@ -1,5 +1,5 @@
 // Ringside 32 service worker: nätverk först för spelet (alltid senaste versionen), cache som reserv offline
-const C='rs32-cache-8';
+const C='rs32-cache-9';
 const A=['./','index.html','manifest.webmanifest','icon-192.png','icon-512.png','three.module.min.js','human.json','human.bin','cannon-es.js','boxer3d.json','boxer3d.bin','mix.json','mix.bin','tex/boxer_red.jpg','tex/boxer_blue.jpg','boxer.json','tex/skin_warm.png','tex/shorts_red.png','tex/shorts_blue.png','tex/gloves_red.png','tex/boots_white.png','tex/hair_dark.png','tex/wrap_white.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(A)).catch(()=>{}));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(self.clients.claim())});
